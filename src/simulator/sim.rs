@@ -4,12 +4,14 @@ use crate::core::types::{NetId, Logic};
 use crate::circuit::circuit::Circuit;
 use super::event::Event;
 use super::scheduler::Wheel;
+use super::watcher::Watcher;
 
 use crate::logic::eval::eval_gate;
 
 pub struct Simulator {
     wheel: Wheel<256>,
     circuit: Circuit,
+    watchers: Vec<Watcher>,
 }
 
 impl Simulator {
@@ -17,6 +19,7 @@ impl Simulator {
         Self {
             wheel: Wheel::new(),
             circuit,
+            watchers: Vec::new(),
         }
     }
 
@@ -28,20 +31,39 @@ impl Simulator {
         self.circuit.nets[net].value
     }
 
-    // Pseudocode:
-    //  grab next events if there is one
-    //  loop for event in events in a random order:
-    //      if the net's value is not changing:
-    //          skip event
-    //
-    //      set net's value to next value
-    //
-    //      Loop for gate in net's sinks:
-    //          evaluate gate
-    //          
-    //          if the gate's output changes:
-    //              push new event with gate delay
-    pub fn run(&mut self) {
+    pub fn create_watcher(&mut self, net: NetId) {
+        self.watchers.push(Watcher::new(net));
+    }
+
+    pub fn read_watcher(& self, net: NetId) -> Option<&Vec<Logic>> {
+        for watcher in &self.watchers {
+            if watcher.net == net {
+                return Some(&watcher.outputs);
+            }
+        }
+
+        None
+    }
+    
+    pub fn run(&mut self, max_steps: usize) {
+        // Pseudocode:
+        //  grab next events if there is one
+        //  loop for event in events in a random order:
+        //      if the net's value is not changing:
+        //          skip event
+        //
+        //      set net's value to next value
+        //
+        //      Loop for gate in net's sinks:
+        //          evaluate gate
+        //          
+        //          if the gate's output changes:
+        //              push new event with gate delay
+        //
+        //  update watchers
+        
+        let mut step: usize = 0;
+        
         while let Some(mut curr_events) = self.wheel.pop() {
             curr_events.shuffle(&mut rand::rng());
 
@@ -68,6 +90,17 @@ impl Simulator {
                         });
                     }
                 }
+            }
+
+            for watcher in &mut self.watchers {
+                let value = self.circuit.nets[watcher.net].value;
+
+                watcher.outputs.push(value);
+            }
+
+            step += 1;
+            if step >= max_steps {
+                break;
             }
         }
     }
@@ -107,7 +140,7 @@ mod tests {
         sim.schedule_event(0, 0, Logic::OFF);
         sim.schedule_event(0, 1, Logic::OFF);
 
-        sim.run();
+        sim.run(256);
 
         let output = sim.read_net(2);
 
@@ -118,7 +151,7 @@ mod tests {
         sim.schedule_event(0, 0, Logic::ON);
         sim.schedule_event(0, 1, Logic::OFF);
 
-        sim.run();
+        sim.run(256);
 
         let output = sim.read_net(2);
 
@@ -129,7 +162,7 @@ mod tests {
         sim.schedule_event(0, 0, Logic::ON);
         sim.schedule_event(0, 1, Logic::ON);
 
-        sim.run();
+        sim.run(256);
 
         let output = sim.read_net(2);
 
@@ -167,7 +200,7 @@ mod tests {
         sim.schedule_event(0, 0, Logic::OFF);
         sim.schedule_event(0, 1, Logic::OFF);
 
-        sim.run();
+        sim.run(256);
 
         println!("Net 0: {:?}, Net 1: {:?}, Net 2: {:?}, Net 3: {:?}, Net 4: {:?}, Net 5: {:?}",
             sim.read_net(0), sim.read_net(1), sim.read_net(2), sim.read_net(3), sim.read_net(4), sim.read_net(5));
@@ -181,7 +214,7 @@ mod tests {
         sim.schedule_event(0, 0, Logic::ON);
         sim.schedule_event(0, 1, Logic::OFF);
 
-        sim.run();
+        sim.run(256);
 
         let output = sim.read_net(5);
 
@@ -192,7 +225,7 @@ mod tests {
         sim.schedule_event(0, 0, Logic::ON);
         sim.schedule_event(0, 1, Logic::ON);
 
-        sim.run();
+        sim.run(256);
 
         let output = sim.read_net(5);
 
@@ -200,8 +233,8 @@ mod tests {
     }
 
     #[test]
-    fn random() {
-        let NUM_ITERS = 50;
+    fn random_state_selection() {
+        let num_iters = 50;
 
         let mut circuit = Circuit::new();
 
@@ -223,14 +256,14 @@ mod tests {
 
         let mut outputs: Vec<Logic> = Vec::new();
 
-        for _ in 0..NUM_ITERS {
+        for _ in 0..num_iters {
             sim.schedule_event(0, 0, Logic::OFF);
             sim.schedule_event(0, 1, Logic::OFF);
 
             sim.schedule_event(5, 0, Logic::ON);
             sim.schedule_event(5, 1, Logic::ON);
 
-            sim.run();
+            sim.run(256);
 
             outputs.push(sim.read_net(2));
 
@@ -242,11 +275,85 @@ mod tests {
             .filter(|&&x| x == Logic::ON)
             .count();
 
-        let proportion: f64 = count as f64 / NUM_ITERS as f64;
+        let proportion: f64 = count as f64 / num_iters as f64;
         
+        // Make sure proportion is within 2 standard deviations
+        assert!((proportion - 0.5).abs() <= 0.14, "proportion that are ON is not random but {}", proportion);
+    }
 
-        assert!((proportion - 0.5).abs() <= 0.07, "proportion that are ON is not random but {}", proportion);
+    #[test]
+    fn watcher() {
+        let mut circuit = Circuit::new();
 
-        
+        circuit.nets.push(Net {value: Logic::X, sinks: vec![]});
+
+        let mut sim = Simulator::new(circuit);
+        sim.create_watcher(0);
+
+        sim.schedule_event(0, 0, Logic::ON);
+        sim.schedule_event(2, 0, Logic::OFF);
+
+        sim.run(256);
+
+        let output: &Vec<Logic> = sim.read_watcher(0).unwrap();
+        for val in output {
+            println!("{:?}", val);
+        }
+
+        assert_eq!(output, &vec![Logic::ON, Logic::ON, Logic::OFF]);
+    }
+
+    #[test]
+    fn oscillation() {
+        let mut circuit = Circuit::new();
+
+        // 0
+        circuit.nets.push(Net {value: Logic::X, sinks: vec![0]});
+        // 1
+        circuit.nets.push(Net {value: Logic::X, sinks: vec![0]});
+
+        // 0
+        circuit.gates.push(Gate {a: 0, b: 1, out: 1});
+
+        let mut sim = Simulator::new(circuit);
+
+        sim.create_watcher(1);
+
+        sim.schedule_event(0, 0, Logic::OFF);
+        sim.schedule_event(0, 1, Logic::ON);
+
+        sim.run(256);
+
+        let output: &Vec<Logic> = sim.read_watcher(1).unwrap();
+       
+
+        //assert_eq!(output[0], Logic::ON);
+
+        sim.reset();
+
+        sim.schedule_event(0, 0, Logic::ON);
+        sim.schedule_event(0, 1, Logic::ON);
+
+        sim.run(5);
+
+        //let output = sim.read_net(1);
+
+        let output: &Vec<Logic> = sim.read_watcher(1).unwrap();
+        for val in output {
+            println!("{:?}", val);
+        }
+
+        assert!(false);
+
+        sim.schedule_event(0, 0, Logic::ON);
+        sim.schedule_event(0, 1, Logic::ON);
+
+        sim.run(6);
+
+        let output = sim.read_net(1);
+
+        assert_eq!(output, Logic::OFF);
+
+        sim.reset()
     }
 }

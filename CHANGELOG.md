@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Events happening in the same time step are handled in a random order
 
+### Added
+
+- Added watchers
+
 ## [0.1.0] - 2026-05-30
 
 ### Added
