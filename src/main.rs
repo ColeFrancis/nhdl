@@ -34,11 +34,21 @@ fn main() {
 
     simulation.init_net(0, Logic::OFF);
 
-    simulation.init_net(1, Logic::ON);
+    simulation.init_net(1, Logic::OFF);
 
     simulation.run();
 
     let output1 = simulation.read_net(2);
+
+    simulation.reset();
+
+    simulation.init_net(0, Logic::OFF);
+
+    simulation.init_net(1, Logic::ON);
+
+    simulation.run();
+
+    let output2 = simulation.read_net(2);
 
     simulation.reset();
 
@@ -48,7 +58,9 @@ fn main() {
 
     simulation.run();
 
-    let output2 = simulation.read_net(2);
+    let output3 = simulation.read_net(2);
 
-    println!("Output states: {:?}, {:?}", output1, output2);
+    println!("OFF, OFF: {:?}", output1);
+    println!("OFF, ON: {:?}", output2);
+    println!("ON, ON: {:?}", output3);
 }
