@@ -1,3 +1,5 @@
+use rand::seq::SliceRandom;
+
 use crate::core::types::{NetId, Logic};
 use crate::circuit::circuit::Circuit;
 use super::event::Event;
@@ -18,8 +20,8 @@ impl Simulator {
         }
     }
 
-    pub fn init_net(&mut self, net: NetId, level: Logic) {
-        self.wheel.push(Event {time: 0, net: net, new_value: level});
+    pub fn schedule_event(&mut self, time: usize, net: NetId, level: Logic) {
+        self.wheel.push(Event {time: time, net: net, new_value: level});
     }
 
     pub fn read_net(&self, net: NetId) -> Logic {
@@ -28,7 +30,7 @@ impl Simulator {
 
     // Pseudocode:
     //  grab next events if there is one
-    //  loop for event in events:
+    //  loop for event in events in a random order:
     //      if the net's value is not changing:
     //          skip event
     //
@@ -40,8 +42,9 @@ impl Simulator {
     //          if the gate's output changes:
     //              push new event with gate delay
     pub fn run(&mut self) {
-        while let Some(curr_events) = self.wheel.pop() {
-            println!("Num Events: {}", curr_events.len());
+        while let Some(mut curr_events) = self.wheel.pop() {
+            curr_events.shuffle(&mut rand::rng());
+
             for event in curr_events {
                 if self.circuit.nets[event.net].value == event.new_value {
                     continue;
@@ -101,8 +104,8 @@ mod tests {
 
         let mut sim = Simulator::new(circuit);
 
-        sim.init_net(0, Logic::OFF);
-        sim.init_net(1, Logic::OFF);
+        sim.schedule_event(0, 0, Logic::OFF);
+        sim.schedule_event(0, 1, Logic::OFF);
 
         sim.run();
 
@@ -112,8 +115,8 @@ mod tests {
 
         sim.reset();
 
-        sim.init_net(0, Logic::ON);
-        sim.init_net(1, Logic::OFF);
+        sim.schedule_event(0, 0, Logic::ON);
+        sim.schedule_event(0, 1, Logic::OFF);
 
         sim.run();
 
@@ -123,8 +126,8 @@ mod tests {
 
         sim.reset();
 
-        sim.init_net(0, Logic::ON);
-        sim.init_net(1, Logic::ON);
+        sim.schedule_event(0, 0, Logic::ON);
+        sim.schedule_event(0, 1, Logic::ON);
 
         sim.run();
 
@@ -161,8 +164,8 @@ mod tests {
 
         let mut sim = Simulator::new(circuit);
 
-        sim.init_net(0, Logic::OFF);
-        sim.init_net(1, Logic::OFF);
+        sim.schedule_event(0, 0, Logic::OFF);
+        sim.schedule_event(0, 1, Logic::OFF);
 
         sim.run();
 
@@ -175,8 +178,8 @@ mod tests {
 
         sim.reset();
 
-        sim.init_net(0, Logic::ON);
-        sim.init_net(1, Logic::OFF);
+        sim.schedule_event(0, 0, Logic::ON);
+        sim.schedule_event(0, 1, Logic::OFF);
 
         sim.run();
 
@@ -186,8 +189,8 @@ mod tests {
 
         sim.reset();
 
-        sim.init_net(0, Logic::ON);
-        sim.init_net(1, Logic::ON);
+        sim.schedule_event(0, 0, Logic::ON);
+        sim.schedule_event(0, 1, Logic::ON);
 
         sim.run();
 
