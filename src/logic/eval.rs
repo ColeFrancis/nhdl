@@ -1,5 +1,5 @@
 use crate::core::types::Logic;
-use crate::circuit::gate::Gate;
+use crate::circuit::gate::{Gate, GateType};
 use crate::circuit::circuit::Circuit;
 
 fn eval_nand(a: Logic, b: Logic) -> Logic {
@@ -14,7 +14,9 @@ pub fn eval_gate(circuit: &Circuit, gate: &Gate) -> Logic {
     let a = circuit.nets[gate.a].value;
     let b = circuit.nets[gate.b].value;
 
-    eval_nand(a, b)
+    match gate.gate_type {
+        GateType::NAND => eval_nand(a, b)
+    }
 }
 
 #[cfg(test)]
