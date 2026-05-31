@@ -309,6 +309,50 @@ mod tests {
     }
 
     #[test]
+    fn start_stop() {
+        let mut circuit = Circuit::new();
+
+        // 0
+        circuit.nets.push(Net {value: Logic::X, sinks: vec![0]});
+        // 1
+        circuit.nets.push(Net {value: Logic::X, sinks: vec![1]});
+        // 2
+        circuit.nets.push(Net {value: Logic::X, sinks: vec![2]});
+        // 3
+        circuit.nets.push(Net {value: Logic::X, sinks: vec![0]});
+
+        // 0
+        circuit.gates.push(Gate {a: 0, b: 0, out: 1});
+        // 1
+        circuit.gates.push(Gate {a: 1, b: 1, out: 2});
+        // 0
+        circuit.gates.push(Gate {a: 2, b: 2, out: 3});
+
+        let mut sim = Simulator::new(circuit);
+
+        sim.create_watcher(1);
+        sim.create_watcher(3);
+
+        sim.schedule_event(0, 0, Logic::ON);
+
+        sim.run(2);
+
+        let output_1: &Vec<Logic> = sim.read_watcher(1).unwrap();
+        let output_3: &Vec<Logic> = sim.read_watcher(3).unwrap();
+
+        assert_eq!(output_1, &vec![Logic::X, Logic::OFF]);
+        assert_eq!(output_3, &vec![Logic::X, Logic::X]);
+
+        sim.run(10);
+
+        let output_1: &Vec<Logic> = sim.read_watcher(1).unwrap();
+        let output_3: &Vec<Logic> = sim.read_watcher(3).unwrap();
+
+        assert_eq!(output_1, &vec![Logic::X, Logic::OFF, Logic::OFF, Logic::OFF]);
+        assert_eq!(output_3, &vec![Logic::X, Logic::X, Logic::X, Logic::OFF]);
+    }
+
+    #[test]
     fn oscillation() {
         let mut circuit = Circuit::new();
 

@@ -1,7 +1,6 @@
 # TODO
 
 - Test oscillator logic
-- Test stopping (by setting low max steps) and restarting sim.run to ensure continuity
 
 - Add parameter to run to track all events even when net doesn't change
     - only_necessary_updates: bool = true or something like that
@@ -15,3 +14,4 @@
 - HDL and synthesyzer
     - Design language
     - Write parser
+    - graph rewriting
