@@ -20,5 +20,6 @@
     - support for graph or cellular atomata
 - Additional signal types beyond logic
     - spikes for spiking networks
+    - Number types for analyzing computation graphs (like out of order execution)
     - analog values for discrete time systems
     - packets for computer networks/ comm channels
