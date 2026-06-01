@@ -5,6 +5,7 @@
 - swap all usize for u32
 
 - add way to change how metastable operations are handled
+    - random (current) or synchronously
     - maybe additional argument to run?
 
 - Implement ability to build a circuit from a graph.
