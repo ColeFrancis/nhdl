@@ -4,11 +4,7 @@
 - Test abilitybof time wheel to wrap around
 - swap all usize for u32
 
-- add way to change how metastable operations are handled
-    - random (current) or synchronously
-    - maybe additional argument to run?
-
-- Implement ability to build a circuit from a graph.
+- Implement ability to build a circuit from a graph
     - Graph.build_circuit() or circuit.from_graph()
     - returns Result <(inputs: Vec<NetId>, outputs: Vec<NetId>, Circuit), circuitbbuild error>
 
@@ -16,6 +12,10 @@
     - Design language
     - Write parser
     - graph rewriting
+
+- add way to change how metastable operations are handled
+    - random (current) or synchronously
+    - with current, evaulating an atomata would explode in complexity
 
 # Possible future extensions
 
