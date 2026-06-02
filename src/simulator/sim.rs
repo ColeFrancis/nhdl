@@ -390,7 +390,7 @@ mod tests {
         assert_eq!(all, 3);
     }
 
-    /*#[test]
+    #[test]
     fn oscillation() {
         let mut circuit = Circuit::new();
 
@@ -400,19 +400,22 @@ mod tests {
         circuit.nets.push(Net {value: Logic::X, sinks: vec![0]});
 
         // 0
-        circuit.gates.push(Gate {gate_type: GateType::NAND, a: 0, b: 1, out: 1});
+        circuit.gates.push(Gate::new(0, 1, 1));
 
         let mut sim = Simulator::new(circuit);
 
         sim.create_watcher(1);
 
         sim.schedule_event(0, 0, Logic::OFF);
-        sim.schedule_event(0, 1, Logic::ON);
+        sim.schedule_event(3, 0, Logic::ON);
+        sim.schedule_event(6, 0, Logic::OFF);
 
-        sim.run(5, true);
+        sim.run(256, true);
 
         let output: &Vec<Logic> = sim.read_watcher(1).unwrap();
-       
-        assert!(false);
-    }*/
+        
+        println!("{:?}", output);
+
+        assert_eq!(output, &vec![Logic::X, Logic::ON, Logic::ON, Logic::ON, Logic::OFF, Logic::ON, Logic::OFF, Logic::ON]);
+    }
 }

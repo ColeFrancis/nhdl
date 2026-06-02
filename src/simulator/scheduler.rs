@@ -42,11 +42,11 @@ impl<const WHEEL_SIZE: usize> Wheel<WHEEL_SIZE> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::types::Logic;
+    use crate::core::types::{Logic, NetId};
 
     const TEST_SIZE: usize = 4;
 
-    fn make_event(time: usize, net: usize, value: Logic) -> Event {
+    fn make_event(time: usize, net: NetId, value: Logic) -> Event {
         Event {
             time,
             net,
@@ -109,5 +109,27 @@ mod tests {
         }
 
         assert!(popped_events == total_events, "pushed {} events but popped {}", total_events, popped_events);
+    }
+
+    #[test]
+    fn wrap_around() {
+        let mut wheel: Wheel<TEST_SIZE> = Wheel::new();
+
+        wheel.push(make_event(0, 0, Logic::OFF));
+        wheel.push(make_event(4, 0, Logic::ON));
+
+        let first_pop = wheel.pop();
+        assert!(first_pop.is_some());
+        let first_event = first_pop.unwrap();
+        assert_eq!(first_event.len(), 1);
+
+        for _ in 0..3 {
+            wheel.pop();
+        }
+
+        let last_pop = wheel.pop();
+        assert!(last_pop.is_some());
+        let last_event = last_pop.unwrap();
+        assert_eq!(last_event.len(), 1);
     }
 }
