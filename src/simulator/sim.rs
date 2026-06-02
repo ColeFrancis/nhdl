@@ -1,43 +1,43 @@
 use rand::seq::SliceRandom;
 
-use crate::core::types::{NetId, Logic};
-use crate::circuit::circuit::Circuit;
+use crate::core::types::{EntityId, Logic};
+use crate::network::network::Network;
 use super::event::Event;
 use super::scheduler::Wheel;
 use super::watcher::Watcher;
 
-use crate::logic::eval::eval_gate;
+use crate::logic::eval::eval_relation;
 
 pub struct Simulator {
     wheel: Wheel<256>,
-    circuit: Circuit,
+    network: Network,
     watchers: Vec<Watcher>,
 }
 
 impl Simulator {
-    pub fn new(circuit: Circuit) -> Self {
+    pub fn new(network: Network) -> Self {
         Self {
             wheel: Wheel::new(),
-            circuit,
+            network,
             watchers: Vec::new(),
         }
     }
 
-    pub fn schedule_event(&mut self, time: usize, net: NetId, level: Logic) {
-        self.wheel.push(Event {time: time, net: net, new_value: level});
+    pub fn schedule_event(&mut self, time: usize, entity: EntityId, level: Logic) {
+        self.wheel.push(Event {time: time, entity: entity, new_value: level});
     }
 
-    pub fn read_net(&self, net: NetId) -> Logic {
-        self.circuit.nets[net].value
+    pub fn read_entity(&self, entity: EntityId) -> Logic {
+        self.network.entities[entity].value
     }
 
-    pub fn create_watcher(&mut self, net: NetId) {
-        self.watchers.push(Watcher::new(net));
+    pub fn create_watcher(&mut self, entity: EntityId) {
+        self.watchers.push(Watcher::new(entity));
     }
 
-    pub fn read_watcher(& self, net: NetId) -> Option<&Vec<Logic>> {
+    pub fn read_watcher(& self, entity: EntityId) -> Option<&Vec<Logic>> {
         for watcher in &self.watchers {
-            if watcher.net == net {
+            if watcher.entity == entity {
                 return Some(&watcher.outputs);
             }
         }
@@ -49,16 +49,16 @@ impl Simulator {
         // Pseudocode:
         //  grab next events if there is one
         //  loop for event in events in a random order:
-        //      if the net's value is not changing and only necessary events:
+        //      if the entities value is not changing and only necessary events:
         //          skip event
         //
-        //      set net's value to next value
+        //      set entities value to next value
         //
-        //      Loop for gate in net's sinks:
-        //          evaluate gate
+        //      Loop for relation in entities sinks:
+        //          evaluate relation
         //          
-        //          if the gate's output changes or allow unnecessary events:
-        //              push new event with gate delay
+        //          if the relation's output changes or allow unnecessary events:
+        //              push new event with relation delay
         //
         //  update watchers
         //  check if number of steps has exceeded max
@@ -69,24 +69,24 @@ impl Simulator {
             curr_events.shuffle(&mut rand::rng());
 
             for event in curr_events {
-                if self.circuit.nets[event.net].value == event.new_value && only_necessary_events {
+                if self.network.entities[event.entity].value == event.new_value && only_necessary_events {
                     continue;
                 }
 
-                self.circuit.nets[event.net].value = event.new_value;
+                self.network.entities[event.entity].value = event.new_value;
 
-                let sinks = self.circuit.nets[event.net].sinks.clone();
+                let sinks = self.network.entities[event.entity].sinks.clone();
 
                 for gate_id in sinks {
-                    let gate = &self.circuit.gates[gate_id];
+                    let relation = &self.network.relations[gate_id];
                     
-                    let old_out = self.circuit.nets[gate.out].value;
-                    let new_out = eval_gate(&self.circuit, gate);
+                    let old_out = self.network.entities[relation.out].value;
+                    let new_out = eval_relation(&self.network, relation);
 
                     if old_out != new_out || !only_necessary_events {
                         self.wheel.push(Event {
                             time: event.time+1, 
-                            net:gate.out, 
+                            entity:relation.out, 
                             new_value: new_out
                         });
                     }
@@ -94,7 +94,7 @@ impl Simulator {
             }
 
             for watcher in &mut self.watchers {
-                let value = self.circuit.nets[watcher.net].value;
+                let value = self.network.entities[watcher.entity].value;
 
                 watcher.outputs.push(value);
             }
@@ -109,8 +109,8 @@ impl Simulator {
     }
 
     pub fn reset(&mut self) {
-        for net in &mut self.circuit.nets {
-            net.value = Logic::X;
+        for entity in &mut self.network.entities {
+            entity.value = Logic::X;
         }
         
         self.wheel.reset();
@@ -125,32 +125,32 @@ impl Simulator {
 mod tests {
     use super::*;
     use crate::core::types::Logic;
-    use crate::circuit::circuit::Circuit;
-    use crate::circuit::gate::Gate;
-    use crate::circuit::net::Net;
+    use crate::network::network::Network;
+    use crate::network::relation::Relation;
+    use crate::network::entity::Entity;
 
     #[test]
     fn nand_gate() {
-        let mut circuit = Circuit::new();
+        let mut network = Network::new();
 
         // 0
-        circuit.nets.push(Net {value: Logic::X, sinks: vec![0]});
+        network.entities.push(Entity {value: Logic::X, sinks: vec![0]});
         // 1
-        circuit.nets.push(Net {value: Logic::X, sinks: vec![0]});
+        network.entities.push(Entity {value: Logic::X, sinks: vec![0]});
         // 2
-        circuit.nets.push(Net {value: Logic::X, sinks: vec![]});
+        network.entities.push(Entity {value: Logic::X, sinks: vec![]});
 
         // 0
-        circuit.gates.push(Gate::new(0, 1, 2));
+        network.relations.push(Relation::new(0, 1, 2));
 
-        let mut sim = Simulator::new(circuit);
+        let mut sim = Simulator::new(network);
 
         sim.schedule_event(0, 0, Logic::OFF);
         sim.schedule_event(0, 1, Logic::OFF);
 
         sim.run(256, true);
 
-        let output = sim.read_net(2);
+        let output = sim.read_entity(2);
 
         assert_eq!(output, Logic::ON, "OFF, OFF gave {:?}", output);
 
@@ -161,7 +161,7 @@ mod tests {
 
         sim.run(256, true);
 
-        let output = sim.read_net(2);
+        let output = sim.read_entity(2);
 
         assert_eq!(output, Logic::ON, "ON, OFF gave {:?}", output);
 
@@ -172,48 +172,48 @@ mod tests {
 
         sim.run(256, true);
 
-        let output = sim.read_net(2);
+        let output = sim.read_entity(2);
 
         assert_eq!(output, Logic::OFF, "ON, ON gave {:?}", output);
     }
 
     #[test]
     fn xor_gate() {
-        let mut circuit = Circuit::new();
+        let mut network = Network::new();
 
         // 0
-        circuit.nets.push(Net {value: Logic::X, sinks: vec![0, 1]});
+        network.entities.push(Entity {value: Logic::X, sinks: vec![0, 1]});
         // 1
-        circuit.nets.push(Net {value: Logic::X, sinks: vec![0, 2]});
+        network.entities.push(Entity {value: Logic::X, sinks: vec![0, 2]});
         // 2
-        circuit.nets.push(Net {value: Logic::X, sinks: vec![1, 2]});
+        network.entities.push(Entity {value: Logic::X, sinks: vec![1, 2]});
         // 3
-        circuit.nets.push(Net {value: Logic::X, sinks: vec![3]});
+        network.entities.push(Entity {value: Logic::X, sinks: vec![3]});
         // 4
-        circuit.nets.push(Net {value: Logic::X, sinks: vec![3]});
+        network.entities.push(Entity {value: Logic::X, sinks: vec![3]});
         // 5
-        circuit.nets.push(Net {value: Logic::X, sinks: vec![]});
+        network.entities.push(Entity {value: Logic::X, sinks: vec![]});
 
         // 0
-        circuit.gates.push(Gate::new(0, 1, 2));
+        network.relations.push(Relation::new(0, 1, 2));
         // 1
-        circuit.gates.push(Gate::new(0, 2, 3));
+        network.relations.push(Relation::new(0, 2, 3));
         // 2
-        circuit.gates.push(Gate::new(1, 2, 4));
+        network.relations.push(Relation::new(1, 2, 4));
         // 3
-        circuit.gates.push(Gate::new(3, 4, 5));
+        network.relations.push(Relation::new(3, 4, 5));
 
-        let mut sim = Simulator::new(circuit);
+        let mut sim = Simulator::new(network);
 
         sim.schedule_event(0, 0, Logic::OFF);
         sim.schedule_event(0, 1, Logic::OFF);
 
         sim.run(256, true);
 
-        println!("Net 0: {:?}, Net 1: {:?}, Net 2: {:?}, Net 3: {:?}, Net 4: {:?}, Net 5: {:?}",
-            sim.read_net(0), sim.read_net(1), sim.read_net(2), sim.read_net(3), sim.read_net(4), sim.read_net(5));
+        println!("Entity 0: {:?}, Entity 1: {:?}, Entity 2: {:?}, Entity 3: {:?}, Entity 4: {:?}, Entity 5: {:?}",
+            sim.read_entity(0), sim.read_entity(1), sim.read_entity(2), sim.read_entity(3), sim.read_entity(4), sim.read_entity(5));
 
-        let output = sim.read_net(5);
+        let output = sim.read_entity(5);
 
         assert_eq!(output, Logic::OFF, "OFF, OFF gave {:?}", output);
 
@@ -224,7 +224,7 @@ mod tests {
 
         sim.run(256, true);
 
-        let output = sim.read_net(5);
+        let output = sim.read_entity(5);
 
         assert_eq!(output, Logic::ON, "ON, OFF gave {:?}", output);
 
@@ -235,7 +235,7 @@ mod tests {
 
         sim.run(256, true);
 
-        let output = sim.read_net(5);
+        let output = sim.read_entity(5);
 
         assert_eq!(output, Logic::OFF, "ON, ON gave {:?}", output);
     }
@@ -244,23 +244,23 @@ mod tests {
     fn random_state_selection() {
         let num_iters = 50;
 
-        let mut circuit = Circuit::new();
+        let mut network = Network::new();
 
         // 0
-        circuit.nets.push(Net {value: Logic::X, sinks: vec![0]});
+        network.entities.push(Entity {value: Logic::X, sinks: vec![0]});
         // 1
-        circuit.nets.push(Net {value: Logic::X, sinks: vec![1]});
+        network.entities.push(Entity {value: Logic::X, sinks: vec![1]});
         // 2
-        circuit.nets.push(Net {value: Logic::X, sinks: vec![1]});
+        network.entities.push(Entity {value: Logic::X, sinks: vec![1]});
         // 3
-        circuit.nets.push(Net {value: Logic::X, sinks: vec![0]});
+        network.entities.push(Entity {value: Logic::X, sinks: vec![0]});
 
         // 0
-        circuit.gates.push(Gate::new(0, 3, 2));
+        network.relations.push(Relation::new(0, 3, 2));
         // 1
-        circuit.gates.push(Gate::new(1, 2, 3));
+        network.relations.push(Relation::new(1, 2, 3));
 
-        let mut sim = Simulator::new(circuit);
+        let mut sim = Simulator::new(network);
 
         let mut outputs: Vec<Logic> = Vec::new();
 
@@ -273,7 +273,7 @@ mod tests {
 
             sim.run(256, true);
 
-            outputs.push(sim.read_net(2));
+            outputs.push(sim.read_entity(2));
 
             sim.reset();
         }
@@ -291,11 +291,11 @@ mod tests {
 
     #[test]
     fn watcher() {
-        let mut circuit = Circuit::new();
+        let mut network = Network::new();
 
-        circuit.nets.push(Net {value: Logic::X, sinks: vec![]});
+        network.entities.push(Entity {value: Logic::X, sinks: vec![]});
 
-        let mut sim = Simulator::new(circuit);
+        let mut sim = Simulator::new(network);
         sim.create_watcher(0);
 
         sim.schedule_event(0, 0, Logic::ON);
@@ -313,25 +313,25 @@ mod tests {
 
     #[test]
     fn start_stop() {
-        let mut circuit = Circuit::new();
+        let mut network = Network::new();
 
         // 0
-        circuit.nets.push(Net {value: Logic::X, sinks: vec![0]});
+        network.entities.push(Entity {value: Logic::X, sinks: vec![0]});
         // 1
-        circuit.nets.push(Net {value: Logic::X, sinks: vec![1]});
+        network.entities.push(Entity {value: Logic::X, sinks: vec![1]});
         // 2
-        circuit.nets.push(Net {value: Logic::X, sinks: vec![2]});
+        network.entities.push(Entity {value: Logic::X, sinks: vec![2]});
         // 3
-        circuit.nets.push(Net {value: Logic::X, sinks: vec![0]});
+        network.entities.push(Entity {value: Logic::X, sinks: vec![0]});
 
         // 0
-        circuit.gates.push(Gate::new(0, 0, 1));
+        network.relations.push(Relation::new(0, 0, 1));
         // 1
-        circuit.gates.push(Gate::new(1, 1, 2));
+        network.relations.push(Relation::new(1, 1, 2));
         // 0
-        circuit.gates.push(Gate::new(2, 2, 3));
+        network.relations.push(Relation::new(2, 2, 3));
 
-        let mut sim = Simulator::new(circuit);
+        let mut sim = Simulator::new(network);
 
         sim.create_watcher(1);
         sim.create_watcher(3);
@@ -357,23 +357,23 @@ mod tests {
 
     #[test]
     fn only_neccessary() {
-        let mut circuit = Circuit::new();
+        let mut network = Network::new();
 
         // 0
-        circuit.nets.push(Net {value: Logic::X, sinks: vec![0]});
+        network.entities.push(Entity {value: Logic::X, sinks: vec![0]});
         // 1
-        circuit.nets.push(Net {value: Logic::X, sinks: vec![0]});
+        network.entities.push(Entity {value: Logic::X, sinks: vec![0]});
         // 2
-        circuit.nets.push(Net {value: Logic::X, sinks: vec![1]});
+        network.entities.push(Entity {value: Logic::X, sinks: vec![1]});
         // 3
-        circuit.nets.push(Net {value: Logic::X, sinks: vec![]});
+        network.entities.push(Entity {value: Logic::X, sinks: vec![]});
 
         // 0
-        circuit.gates.push(Gate::new(0, 1, 2));
+        network.relations.push(Relation::new(0, 1, 2));
         // 1
-        circuit.gates.push(Gate::new(2, 2, 3));
+        network.relations.push(Relation::new(2, 2, 3));
 
-        let mut sim = Simulator::new(circuit);
+        let mut sim = Simulator::new(network);
 
         sim.schedule_event(0, 0, Logic::ON);
 
@@ -392,17 +392,17 @@ mod tests {
 
     #[test]
     fn oscillation() {
-        let mut circuit = Circuit::new();
+        let mut network = Network::new();
 
         // 0
-        circuit.nets.push(Net {value: Logic::X, sinks: vec![0]});
+        network.entities.push(Entity {value: Logic::X, sinks: vec![0]});
         // 1
-        circuit.nets.push(Net {value: Logic::X, sinks: vec![0]});
+        network.entities.push(Entity {value: Logic::X, sinks: vec![0]});
 
         // 0
-        circuit.gates.push(Gate::new(0, 1, 1));
+        network.relations.push(Relation::new(0, 1, 1));
 
-        let mut sim = Simulator::new(circuit);
+        let mut sim = Simulator::new(network);
 
         sim.create_watcher(1);
 

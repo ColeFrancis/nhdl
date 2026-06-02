@@ -1,6 +1,6 @@
 use crate::core::types::Logic;
-use crate::circuit::gate::{Gate, GateType};
-use crate::circuit::circuit::Circuit;
+use crate::network::relation::{Relation, RelationKind};
+use crate::network::network::Network;
 
 fn eval_nand(a: Logic, b: Logic) -> Logic {
     match (a, b) {
@@ -10,12 +10,12 @@ fn eval_nand(a: Logic, b: Logic) -> Logic {
     }
 }
 
-pub fn eval_gate(circuit: &Circuit, gate: &Gate) -> Logic {
-    let a = circuit.nets[gate.a].value;
-    let b = circuit.nets[gate.b].value;
+pub fn eval_relation(network: &Network, relation: &Relation) -> Logic {
+    let a = network.entities[relation.a].value;
+    let b = network.entities[relation.b].value;
 
-    match gate.gate_type {
-        GateType::NAND => eval_nand(a, b)
+    match relation.kind {
+        RelationKind::NAND => eval_nand(a, b)
     }
 }
 

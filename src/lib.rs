@@ -1,4 +1,4 @@
 pub mod simulator;
-pub mod circuit;
+pub mod network;
 pub mod logic;
 pub mod core;

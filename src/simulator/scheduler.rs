@@ -42,14 +42,14 @@ impl<const WHEEL_SIZE: usize> Wheel<WHEEL_SIZE> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::types::{Logic, NetId};
+    use crate::core::types::{Logic, EntityId};
 
     const TEST_SIZE: usize = 4;
 
-    fn make_event(time: usize, net: NetId, value: Logic) -> Event {
+    fn make_event(time: usize, entity: EntityId, value: Logic) -> Event {
         Event {
             time,
-            net,
+            entity,
             new_value: value,
         }
     }

@@ -1,5 +1,5 @@
-pub type NetId = usize;
-pub type GateId = usize;
+pub type EntityId = usize;
+pub type RelationId = usize;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Logic {

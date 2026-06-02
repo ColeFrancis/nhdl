@@ -1,6 +1,6 @@
 # TODO
 
-- Implement ability to build a circuit from a graph
+- Implement ability to build a circuit from a graph (maybe)
     - Graph.build_circuit() or circuit.from_graph()
     - returns Result <(inputs: Vec<NetId>, outputs: Vec<NetId>, Circuit), circuitbbuild error>
 

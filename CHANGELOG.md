@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Run takes as a first argument the max number of time steps it will be allowed to take.
 - Run returns the number of steps it took as an option, none if max number of steps was exceeded
 - Run takes as a second argument whether only necessary events are handled or not.
+- Changed names of fundamental keywords
+    - circuit -> network
+    - gate -> relation
+    - net -> entity
 
 ### Added
 
