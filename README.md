@@ -28,3 +28,12 @@
     - Number types for analyzing computation graphs (like out of order execution) (options?)
     - analog values for discrete time systems
     - packets for computer networks/ comm channels
+ 
+# Analytical tools to add
+
+- Graph structure analysis
+- Information theoretic quantities
+      - entropy, mutual information, transformation entropy, complexity
+- State space analysis
+      - Detect memory and state
+- Graph rewriting
