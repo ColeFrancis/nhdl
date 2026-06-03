@@ -1,5 +1,7 @@
 # TODO
 
+- hard code gate delay as 1 (in sim.run)
+
 - HDL and synthesyzer
     - Design language
     - Write parser
