@@ -1,6 +1,6 @@
 //! # eval
 //!
-//! This module implements the Operator type for each type and 
+//! This module implements the Operator trait for each type and 
 //! defines the associated operations from the operations module
 //!
 //! ## Invariants
