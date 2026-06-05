@@ -1,9 +1,6 @@
 # TODO
 
-- Carefully go through existing code, commenting all files and big methods and restructuring where it makes sense
-
-- network file type
-    - (metadata, [in_idx0,...,in_idxn,],[oyt_idx0,...,out_idxn,],[[ent0_sink0,...,ent0sinkn,],...[],],(gate info,[gate inputs],[gate outputs],),))
+- Implement file read and write functions
 
 - HDL and synthesyzer
     - Design language

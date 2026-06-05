@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [unreleased]
+
+## [0.3.0] - 2026-06-4
+
+### Changed
+
+- The network and simulator are now compile-time generic for different entity types and different operations
+- Doc comments added to the beginning of every module
+
+### Added
+
+- Added new core entity type: Real with ADD and MUL ops
+
 ## [0.2.0] - 2026-06-1
 
 ### Changed
