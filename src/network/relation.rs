@@ -1,3 +1,16 @@
+//! # relation
+//!
+//! This module defines the relation type whcih form the vertices of a network and
+//! implements the eval function
+//!
+//! ## Invariants
+//!
+//! - Relations must contain an operation field, inputs, and outputs.
+//! - Relations must implement eval
+//!
+//! Author: Cole Francis
+//! Last Updated: 06/02/2026
+
 use super::entity::EntityId;
 use crate::network::network::Network;
 use crate::logic::eval::Operator;

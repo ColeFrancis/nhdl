@@ -1,3 +1,14 @@
+//! # types
+//!
+//! This module defines the core entity types of nhdl
+//!
+//! ## Invariants
+//!
+//! - Types must implement Copy, PartialEq, and Resettable
+//!
+//! Author: Cole Francis
+//! Last Updated: 06/04/2026
+
 pub trait Resettable {
     fn reset() -> Self;
 }
@@ -13,10 +24,6 @@ impl Resettable for Logic {
     fn reset() -> Self {
         Logic::X
     }
-}
-
-pub enum LogicOp {
-    NAND,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -38,9 +45,4 @@ impl PartialEq for Real {
             _ => false,
         }
     }
-}
-
-pub enum RealOp {
-    ADD,
-    MUL,
 }

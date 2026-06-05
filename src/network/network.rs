@@ -1,3 +1,14 @@
+//! # network
+//!
+//! This module defines the network type which forms the basis of nhdl
+//!
+//! ## Invariants
+//!
+//! - Netwokrs must be made up of only relations and entities
+//!
+//! Author: Cole Francis
+//! Last Updated: 06/02/2026
+
 use super::relation::Relation;
 use super::entity::Entity;
 

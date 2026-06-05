@@ -1,7 +1,5 @@
 # TODO
 
-- Sim takes mutable reference to network rather than ownership?
-
 - Carefully go through existing code, commenting all files and big methods and restructuring where it makes sense
 
 - network file type

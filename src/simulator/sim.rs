@@ -1,3 +1,18 @@
+//! # sim
+//!
+//! This module forms the core of the simulator of nhdl
+//!
+//! ## Invariants
+//!
+//! - This module shall be able to simulate any network with any set of valid input events and
+//! track the state of any specified entity in the network at any time
+//! - The simulator shall handle all events sequentially
+//! - The simulator shall ensure the network stays at a valid state at all times
+//! - The simulator shall be as simple and generic as possible while still maintining its intended use
+//!
+//! Author: Cole Francis
+//! Last Updated: 06/02/2026
+
 use rand::seq::SliceRandom;
 
 use crate::network::entity::EntityId;
@@ -124,6 +139,10 @@ where
             watcher.reset();
         }
     }
+
+    pub fn into_network(self) -> Network<T, O> {
+        self.network
+    }
 }
 
 #[cfg(test)]
@@ -132,7 +151,8 @@ mod tests {
     use crate::network::network::Network;
     use crate::network::relation::Relation;
     use crate::network::entity::Entity;
-    use crate::core::types::{Logic, LogicOp};
+    use crate::core::types::Logic;
+    use crate::core::operations::LogicOp;
 
     #[test]
     fn nand_gate() {

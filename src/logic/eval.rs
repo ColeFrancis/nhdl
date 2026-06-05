@@ -1,5 +1,17 @@
-use crate::core::types::{Logic, LogicOp};
-use crate::core::types::{Real, RealOp};
+//! # eval
+//!
+//! This module implements the Operator type for each type and 
+//! defines the associated operations from the operations module
+//!
+//! ## Invariants
+//!
+//! - 
+//!
+//! Author: Cole Francis
+//! Last Updated: 06/02/2026
+
+use crate::core::types::{Logic, Real};
+use crate::core::operations::{LogicOp, RealOp};
 
 pub trait Operator<T> {
     fn eval(&self, a: T, b: T) -> T;

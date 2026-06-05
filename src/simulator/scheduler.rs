@@ -1,3 +1,15 @@
+//! # scheduler
+//!
+//! This module forms the core event scheduler of the simulator
+//!
+//! ## Invariants
+//!
+//! - The scheduler shall be able to maintain the order of events, and return all events occuring at a particular time
+//! - One should be able to push events to the scheduler at any time as long as they occur later than the current simulator time
+//!
+//! Author: Cole Francis
+//! Last Updated: 06/02/2026
+
 use super::event::Event;
 
 pub struct Wheel<const WHEEL_SIZE: usize, T> {
