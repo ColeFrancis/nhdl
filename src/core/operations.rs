@@ -1,6 +1,6 @@
 //! # operations
 //!
-//! This module defines the operations for each types relations
+//! This module defines the operations for each types relations as well as the Operator trait
 //!
 //! ## Invariants
 //!
@@ -8,7 +8,7 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 06/06/2026
+//! Last Updated: 06/08/2026
 
 use super::types::Logic;
 use super::types::Real;
