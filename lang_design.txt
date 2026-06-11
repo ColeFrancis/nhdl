@@ -178,6 +178,17 @@ net INTEGRATE {
     b = ADD(a, b);
 }
 
+// Model of a ball thrown upwards wiht a velocity 1 and accelerating down with an acceleration 9.8
+net PNYS {
+    init y: R = 1;
+    init g: R = -9.8;
+
+    output y: R;
+
+    v = ADD(v, g);
+    y = ADD(y, v);
+}
+
 // Showcase of how to create D-latch
 net DLATCH {
     input d: Bool;
