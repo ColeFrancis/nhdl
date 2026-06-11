@@ -1,0 +1,83 @@
+example:
+
+ent Reals = R;
+ent COIN = {H, T};
+ent Z4 = Mod(4);
+
+rel ADD : (a: R, b: R) -> R = 
+    a + b;
+
+rel NAND : (a:Bool, b:Bool) -> Bool = 
+    match (a, b) {
+        (0, 0) => 1,
+        (0, 1) => 1,
+        (1, 0) => 1,
+        (1, 1) => 0,
+    };
+
+rel COND_PROB : (x: COIN) -> COIN = 
+    match x {
+        H => sample {
+            0.9 => H,   // H with a 90% probability
+            0.1 => T,
+        },
+        T => sample {
+            0.2 => H,
+            0.8 => T,
+        }
+    };
+
+rel RAND : () -> Bool = 
+    sample {
+        0.5 => 0,
+        0.5 => 1,
+    };
+
+rel RAND_AND : (a: Bool, b: Bool) -> Bool = 
+    match (a, b) {
+        (0, 0) => Bernoulli(0.1),
+        (0, 1) => Bernoulli(0.1),
+        (1, 0) => Bernoulli(0.1),
+        (1, 1) => Bernoulli(0.9),
+    };
+
+rel NOISE : (x:R) -> R =
+    x + Norm(0,1);   // Gaussian noise with normal dist
+
+net HALF_ADD {
+    input a: Bool;
+    input b: Bool;
+
+    output sum : Bool;
+    output carry : Bool;
+
+    sum = XOR(a,b);
+    carry = AND(a, b);
+};
+
+net FULL_ADD {
+    input a: Bool;
+    input b: Bool;
+    input cin: Bool;
+
+    output sum: Bool;
+    output cout: Bool
+
+    h1 = HALF_ADD(a, b);
+    h2 = HALF_ADD(h1.sum, cin);
+
+    c = OR(h1.carry, h2.carry);
+
+    sum = h2.sum;
+    cout = c;
+}
+
+net XOR_INV {
+    input a: Bool;
+
+    output s: Bool;
+
+    init b: Bool = 1;
+
+    s = XOR(a, b);
+}
