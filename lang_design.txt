@@ -1,12 +1,76 @@
-example:
+I'm designing a programming language and simulator that sits somewhere between a hardware description language, a graph computation system, and a mathematical modeling language.
 
-ent Reals = R;
+The core idea is that everything is built from entities and relations.
+
+An entity defines a set of possible values:
+
+ent Bool = {0, 1};
 ent COIN = {H, T};
+ent R = Reals;
 ent Z4 = Mod(4);
 
+A relation maps inputs to a single output:
+
+rel NAND : (a:Bool, b:Bool) -> Bool =
+    match (a, b) {
+        (0, 0) => 1,
+        (0, 1) => 1,
+        (1, 0) => 1,
+        (1, 1) => 0
+    };
+
+Relations can be deterministic, probabilistic, arithmetic, logical, etc. The simulator executes networks of 
+interconnected relations, so the same framework can represent things like logic circuits, DSP systems, 
+cellular automata, stochastic processes, and potentially more general computational systems.
+
+A major design goal is to keep the language as mathematically minimal as possible while still being practical. 
+Computation should emerge from networks of relations rather than being built around traditional programming 
+concepts like loops, variables, mutable state, or control flow.
+
+I'm currently exploring syntax for pattern matching and predicate matching, for example:
+
+Some other design constraints:
+
+- Relations have exactly one output.
+- Networks are represented as graphs of relation instances connected by wires.
+- The simulator is event-driven, like Verilog
+- Arithmetic types such as Reals may have predefined operations like +, -, *, etc.
+- I'm trying to balance mathematical elegance, simplicity, and practical usability.
+
+I'd mainly like feedback on:
+
+- Whether the syntax feels natural and readable.
+- Whether the match/pattern syntax is intuitive.
+- Whether the distinction between entities and relations makes sense.
+- Any syntax that feels awkward, inconsistent, or surprising.
+
+The goal is not to build another HDL, but to build a tool that allows me to investigate how computation emerges 
+in a variety of systems.
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+Entities: edges of the network (graph). Contain state.
+
+Syntax is inspired by sets in mathematics
+
+ent R = Reals;
+ent COIN = {H, T};
+ent Bool = {0, 1};
+ent Z4 = Mod(4);
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+Relations: nodes of the network. Stateless. Define simple relations between states.
+    The point is to keep these simple so the computational power emerges out of the network's structure, not
+    the relations themselves.
+
+Syntax is inspired by functions/maps in mathematics
+
+// Simple adder
 rel ADD : (a: R, b: R) -> R = 
     a + b;
 
+// Simple nand gate
 rel NAND : (a:Bool, b:Bool) -> Bool = 
     match (a, b) {
         (0, 0) => 1,
@@ -15,6 +79,14 @@ rel NAND : (a:Bool, b:Bool) -> Bool =
         (1, 1) => 0,
     };
 
+// Produces a random 0 or 1
+rel RAND : () -> Bool = 
+    sample {
+        0.5 => 0,
+        0.5 => 1,
+    };
+
+// Produces a random H or T, differing depending on input value
 rel COND_PROB : (x: COIN) -> COIN = 
     match x {
         H => sample {
@@ -27,12 +99,7 @@ rel COND_PROB : (x: COIN) -> COIN =
         }
     };
 
-rel RAND : () -> Bool = 
-    sample {
-        0.5 => 0,
-        0.5 => 1,
-    };
-
+// Produces an and gate with a 10% chance of being wrong
 rel RAND_AND : (a: Bool, b: Bool) -> Bool = 
     match (a, b) {
         (0, 0) => Bernoulli(0.1),
@@ -41,9 +108,40 @@ rel RAND_AND : (a: Bool, b: Bool) -> Bool =
         (1, 1) => Bernoulli(0.9),
     };
 
+// Returns the input with a random amount of noise added through a normal RV
 rel NOISE : (x:R) -> R =
     x + Norm(0,1);   // Gaussian noise with normal dist
 
+// Returns a 1 if x is over some threshold
+rel THRESH : (x:R) -> Bool = 
+    match (x) {
+        (>= 1) => 1,
+        (_) => 0
+    };
+
+// Simulates the rule in the cellular atomata "conway's game of life"
+rel LIFE : (u:Bool, ur:Bool, r:Bool, rd:Bool, d:Bool, dl:Bool, l:Bool, ul:Bool, c:Bool) -> Bool = {
+    let n = u+ur+r+rd+d+dl+l+ul;
+    
+    match (c) {
+        0 => match (n) {
+            (== 3) => 1,
+            (_) => 0
+        },
+        1 => match (n) {
+            (== 3 | == 2) => 1,
+            (_) => 0,
+        }
+    }
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+Network: graph, defined input and output entities as well as initialized values. think Hardware Description Language
+
+Syntax is inspired by Verilog and VHDL
+
+
+// Half adder
 net HALF_ADD {
     input a: Bool;
     input b: Bool;
@@ -55,6 +153,7 @@ net HALF_ADD {
     carry = AND(a, b);
 };
 
+// Full adder
 net FULL_ADD {
     input a: Bool;
     input b: Bool;
@@ -72,6 +171,7 @@ net FULL_ADD {
     cout = c;
 }
 
+// Showcases initializing entity values
 net XOR_INV {
     input a: Bool;
 
@@ -80,4 +180,31 @@ net XOR_INV {
     init b: Bool = 1;
 
     s = XOR(a, b);
+}
+
+// DSP-inspired integrator by adding the current value of a to the current value of b repeatidly
+net INTEGRATE {
+    input a: R;
+    output b: R;
+
+    b = ADD(a, b);
+}
+
+// Showcase of how to create D-latch
+net DLATCH {
+    input d: Bool;
+    input clk: Bool;
+
+    output q: Bool;
+    output q_not: Bool;
+
+    d_not = NOT(d);
+
+    s = NAND(d, clk);
+    r = NAND(d_not, clk);
+
+    // feedback loop not allowed in verilog but technically how a latch/flipflop is formed.
+    // Allowed in my simulator.
+    q = NAND(s, q_not);
+    q_not = NAND(r, q);
 }
