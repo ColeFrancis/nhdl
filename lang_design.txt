@@ -2,26 +2,14 @@ I'm designing a programming language and simulator that sits somewhere between a
 
 The core idea is that everything is built from entities and relations.
 
-An entity defines a set of possible values:
+An entity defines a set of possible values. it could be a logic symbol, or a number, or a hair color.
+A relation maps inputs to a single output. It could be a logic gate, a multiplier, or the update rule of a cellular atomata.
 
-ent Bool = {0, 1};
-ent COIN = {H, T};
-ent R = Reals;
-ent Z4 = Mod(4);
-
-A relation maps inputs to a single output:
-
-rel NAND : (a:Bool, b:Bool) -> Bool =
-    match (a, b) {
-        (0, 0) => 1,
-        (0, 1) => 1,
-        (1, 0) => 1,
-        (1, 1) => 0
-    };
 
 Relations can be deterministic, probabilistic, arithmetic, logical, etc. The simulator executes networks of 
 interconnected relations, so the same framework can represent things like logic circuits, DSP systems, 
 cellular automata, stochastic processes, and potentially more general computational systems.
+In simulation, the current inputs to the relation are taken in, the output is generated and the output entities value is set to this at the next timestep. Sort of like F(n+1) = 2 * F(n)
 
 A major design goal is to keep the language as mathematically minimal as possible while still being practical. 
 Computation should emerge from networks of relations rather than being built around traditional programming 
