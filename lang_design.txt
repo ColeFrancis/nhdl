@@ -120,11 +120,11 @@ rel LIFE : (u:Bool, ur:Bool, r:Bool, rd:Bool, d:Bool, dl:Bool, l:Bool, ul:Bool, 
     
     match (c) {
         0 => match (n) {
-            (== 3) => 1,
+            (3) => 1,
             (_) => 0
         },
         1 => match (n) {
-            (== 3 | == 2) => 1,
+            (3 | 2) => 1,
             (_) => 0,
         }
     }
