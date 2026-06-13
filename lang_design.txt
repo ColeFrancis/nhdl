@@ -1,4 +1,4 @@
-I'm designing a programming language and simulator that sits somewhere between a hardware description language, a graph computation system, and a mathematical modeling language.
+hi I'm designing a programming language and simulator that sits somewhere between a hardware description language, a graph computation system, and a mathematical modeling language.
 
 The core idea is that everything is built from entities and relations.
 
@@ -35,6 +35,12 @@ I'd mainly like feedback on:
 The goal is not to build another HDL, but to build a tool that allows me to investigate how computation emerges 
 in a variety of systems.
 
+
+# Later:
+
+support for probabilisticalky generatinv network entuties/relations
+support for dynamic networks (networks themselves change over time)
+support for arrays of entities in networks and generate block-type constructions
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
