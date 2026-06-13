@@ -138,7 +138,6 @@ impl<'a> Lexer<'a> {
     }
 
     // Keywords, Identifiers
-    // TODO: correctly handle i (complex number) by itself
     fn _handle_letter_underscore(&mut self, first: u8) -> Token  {
         let mut buf = String::new();
         buf.push(first as char);
@@ -147,7 +146,7 @@ impl<'a> Lexer<'a> {
             match c {
                 b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' | b'_' => {
                     buf.push(c as char);
-                    self._next(); // consume
+                    self._next();
                 }
                 _ => break,
             }
@@ -179,7 +178,7 @@ impl<'a> Lexer<'a> {
             match c {
                 b'0'..=b'9' => {
                     buf.push(c as char);
-                    self._next(); // consume
+                    self._next();
                 }
 
                 b'.' if !is_float => {
@@ -196,12 +195,8 @@ impl<'a> Lexer<'a> {
 
                 // Underscores are skipped in numbers
                 b'_' => {
-                    self._next(); // consume
+                    self._next();
                 }
-
-                // i is a keyword for imaginary number
-                //  Therefore, 9i is valid and is broken into two tokens
-                b'i' => break,
 
                 b'a'..=b'z' | b'A'..=b'Z' => {
                     is_valid = false;
@@ -283,13 +278,13 @@ mod test {
 
     #[test]
     fn test_num() {
-        let lexer = Lexer::new("94f 9.9.9 10_000_000_000_000_000_000 99i 99 9.8");
+        let lexer = Lexer::new("94f 9.9.9 10_000_000_000_000_000_000 99 9.8 1_000");
 
         let tokens: Vec<Token> = lexer.collect();
 
         assert_eq!(tokens, vec![Token::InvalidNum("94f".to_string()),Token::InvalidNum("9.9.9".to_string())
-            ,Token::InvalidNum("10000000000000000000".to_string()), Token::IntLiteral(99),Token::I
-            ,Token::IntLiteral(99), Token::RealLiteral(9.8)]);
+            ,Token::InvalidNum("10000000000000000000".to_string()),Token::IntLiteral(99)
+            , Token::RealLiteral(9.8),Token::IntLiteral(1000)]);
     }
 
     #[test]
@@ -300,5 +295,17 @@ mod test {
 
         assert_eq!(tokens, vec![Token::Identifier("id".to_string()),Token::I
             ,Token::Identifier("ai_".to_string()),Token::Identifier("_ai".to_string())]);
+    }
+
+    #[test]
+    fn test_rel() {
+        let lexer = Lexer::new("rel A : (a:Real) -> Cmp = (a / 2)*i;");
+
+        let tokens: Vec<Token> = lexer.collect();
+
+        assert_eq!(tokens, vec![Token::Rel,Token::Identifier("A".to_string()),Token::Colon,Token::LParen
+        ,Token::Identifier("a".to_string()),Token::Colon,Token::Real,Token::RParen,Token::Arrow,Token::Cmp
+        ,Token::Equals,Token::LParen,Token::Identifier("a".to_string()),Token::Slash,Token::IntLiteral(2)
+        ,Token::RParen,Token::Asterisk,Token::I,Token::Semicolon]);
     }
 }
