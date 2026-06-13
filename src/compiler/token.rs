@@ -21,7 +21,9 @@ pub enum Token {
     Int,    // Int
     Real,   // Real
     Cmp,    // Cmp
-    I,      // i (For complex numbers)
+    I,      // i (sqrt(-1))
+    E,      // e (constant)
+    Pi,     // pi (constant)
 
     Identifier(String),
     IntLiteral(i64),
@@ -45,6 +47,7 @@ pub enum Token {
     Minus,    // -
     Asterisk, // *
     Slash,    // /
+    Carrot,   // ^
 
     Unknown(char),
     InvalidNum(String),

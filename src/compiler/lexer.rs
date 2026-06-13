@@ -93,6 +93,7 @@ impl<'a> Lexer<'a> {
                 }
                 b'+' => return Some(Token::Plus),
                 b'*' => return Some(Token::Asterisk),
+                b'^' => return Some(Token::Carrot),
 
                 // Unknown
                 _ => return Some(Token::Unknown(c as char)),
@@ -162,6 +163,8 @@ impl<'a> Lexer<'a> {
             "Int"    => Token::Int,
             "Cmp"    => Token::Cmp,
             "i"      => Token::I,
+            "e"      => Token::E,
+            "pi"     => Token::Pi,
             _ => Token::Identifier(buf),
         }
     }
