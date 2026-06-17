@@ -9,7 +9,7 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 06/16/2026
+//! Last Updated: 06/17/2026
 
 #[derive(Debug, PartialEq)]
 pub enum Token {
@@ -25,6 +25,7 @@ pub enum Token {
     Init,   // init 
     Let,    // let
 
+    Bool,    // Bool
     Int,    // Int
     Real,   // Real
     Complex,    // Complex
