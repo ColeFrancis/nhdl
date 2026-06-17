@@ -5,10 +5,11 @@
 //! ## Invariants
 //!
 //! - Keywords are their own variants
+//! - Tokens must obey and impelment grammar
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 06/13/2026
+//! Last Updated: 06/16/2026
 
 #[derive(Debug, PartialEq)]
 pub enum Token {
@@ -18,9 +19,15 @@ pub enum Token {
     Net,    // net
     Match,  // match
     Sample, // sample
+
+    Input,  // input 
+    Output, // output 
+    Init,   // init 
+    Let,    // let
+
     Int,    // Int
     Real,   // Real
-    Cmp,    // Cmp
+    Complex,    // Complex
     I,      // i (sqrt(-1))
     E,      // e (constant)
     Pi,     // pi (constant)
@@ -48,6 +55,8 @@ pub enum Token {
     Asterisk, // *
     Slash,    // /
     Carrot,   // ^
+    Bar,      // |
+    Ampersand // &
 
     Unknown(char),
     InvalidNum(String),

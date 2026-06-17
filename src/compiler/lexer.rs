@@ -7,10 +7,11 @@
 //! - operations must be binary (for now)
 //! - Lexer returns none upon EOF
 //! - All errors in parsing potential tokens result in an Invalid token
+//! - All tokens must be parsable
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 06/13/2026
+//! Last Updated: 06/16/2026
 
 use super::token::Token;
 
@@ -94,6 +95,8 @@ impl<'a> Lexer<'a> {
                 b'+' => return Some(Token::Plus),
                 b'*' => return Some(Token::Asterisk),
                 b'^' => return Some(Token::Carrot),
+                b'|' => return Some(Token::Bar),
+                b'&' => return Some(Token::Ampersand),
 
                 // Unknown
                 _ => return Some(Token::Unknown(c as char)),
@@ -159,9 +162,13 @@ impl<'a> Lexer<'a> {
             "net"    => Token::Net,
             "match"  => Token::Match,
             "sample" => Token::Sample,
+            "input"  => Token::Input,
+            "output" => Token::Output,
+            "init"   => Token::Init,
+            "let"    => Token::Let,
             "Real"   => Token::Real,
             "Int"    => Token::Int,
-            "Cmp"    => Token::Cmp,
+            "Complex"    => Token::Complex,
             "i"      => Token::I,
             "e"      => Token::E,
             "pi"     => Token::Pi,

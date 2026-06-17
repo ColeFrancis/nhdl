@@ -135,6 +135,9 @@ Network: graph, defined input and output entities as well as initialized values.
 
 Syntax is inspired by Verilog and VHDL
 
+Single-assignment bundle structure and wires. A bundles structure and a wires assignment is immutable once established
+    no: sig.a = wire1; sig.b = wire2;
+    no: a = wire1; a = wire2;
 
 // Half adder
 net HALF_ADD {

@@ -1,0 +1,157 @@
+IDENT = letter (letter | digit | "_")* ;
+NUMBER = digit+ ("." digit+)? ;
+
+literal = 
+      NUMBER
+    | "true"
+    | "false" ;
+
+type = IDENT ;
+
+arg_list =
+    expr ("," expr)* ;
+
+expr = 
+    binary_expr
+    | tuple_expr
+    | match_expr
+    | sample_expr ;
+
+binary_expr = equality ;
+
+equality =
+    comparison (("==" | "!=") comparison)* ;
+
+comparison = 
+    additive (("<" | ">" | "<=" | ">=") additive)* ;
+
+additive =
+    multiplicative (("+" | "-") multiplicative)* ;
+
+multiplicative =
+    unary (("*" | "/") unary )* ;
+
+unary =
+      ("-" | "!") primary ;
+    | primary ;
+
+primary =
+      literal
+    | IDENT
+    | tuple_expr
+    | "(" expr ")" ;
+
+/////////////////////////////////////////////////
+
+program = (ent_decl | rel_decl | net_decl)* ;
+
+//////////////////////////////////////////////////
+
+ent_decl =
+    "ent" IDENT "=" ent_expr ";" ;
+
+ent_expr = 
+      builtin_ent
+    | enum_ent ;
+
+builtin_ent = 
+      "Int"
+    | "Real"
+    | "Complex"
+
+enum_ent = 
+    "{"
+        enum_member
+        ("," enum_member)*
+    "}" ;
+
+enum_member =
+      IDENT
+    | NUMBER ;
+
+///////////////////////////////////////////////////
+
+rel_decl =
+    "rel" IDENT ":" "(" typed_arg_list? ")" "->" type "=" (expr | block_expr) ";" ;
+
+typed_arg_list =
+    typed_arg ("," typed_arg)* ;
+
+typed_arg =
+    IDENT ":" type ;
+
+block_expr = 
+    "{"
+        let_stmt*
+        expr
+    "}" ;
+
+let_stmt = "let" IDENT "=" expr ";" ;
+
+tuple_expr =
+    "(" expr "," expr ("," expr)* ")" ;
+
+match_expr =
+    "match" expr "{"
+        match_arm ("," match_arm)* ","?
+    "}" ;
+
+match_arm =
+    pattern "=>" expr ;
+
+pattern =
+    simple_pattern ("|" simple_pattern)* ;
+
+simple_pattern =
+      "_"
+    | literal
+    | IDENT
+    | tuple_pattern 
+    | comparison_pattern ;
+
+tuple_pattern =
+    "(" pattern ("," pattern)+ ")" ;
+
+comparison_pattern =
+    ("<" | ">" | "<=" | ">=") expr ;
+
+sample_expr = 
+    "sample" "{"
+        sample_arm ("," sample_arm)* ","?
+    "}" ;
+
+sample_arm =
+    expr "=>" expr;
+
+//////////////////////////////////////////////////
+
+net_decl = 
+    "net" IDENT "{"
+        module_item*
+    "}" ;
+
+module_item = 
+      input_decl
+    | output_decl
+    | init_decl
+    | assignment ;
+
+input_decl =
+    "input" IDENT ":" type ";" ;
+
+output_decl =
+    "output" IDENT ":" type ";" ;
+
+init_decl = 
+    "init" IDENT ":" type "=" expr ";" ;
+
+assignment = 
+    path "=" (inst | path) ";" ;
+
+path = 
+    IDENT ("." IDENT)* ;
+
+inst = 
+    IDENT "(" arg_list? ")" ;
+
+/////////////////////////////////////////////////
