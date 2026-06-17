@@ -1,3 +1,15 @@
+//! # grammar
+//!
+//! Provides ground truth for all language grammar
+//!
+//! ## Invariants
+//!
+//! - Forms a single source of truth for all language grammar 
+//!
+//! Author: Cole Francis
+//!
+//! Last Updated: 06/17/2026
+
 IDENT = letter (letter | digit | "_")* ;
 NUMBER = digit+ ("." digit+)? ;
 
@@ -55,7 +67,8 @@ ent_expr =
     | enum_ent ;
 
 builtin_ent = 
-      "Int"
+      "Bool"
+    | "Int"
     | "Real"
     | "Complex"
 
