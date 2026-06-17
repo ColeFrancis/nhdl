@@ -11,7 +11,7 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 06/16/2026
+//! Last Updated: 06/17/2026
 
 use super::token::Token;
 
@@ -166,6 +166,7 @@ impl<'a> Lexer<'a> {
             "output" => Token::Output,
             "init"   => Token::Init,
             "let"    => Token::Let,
+            "Bool"   => Token::Bool,
             "Real"   => Token::Real,
             "Int"    => Token::Int,
             "Complex"    => Token::Complex,
