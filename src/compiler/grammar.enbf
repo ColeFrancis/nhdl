@@ -8,77 +8,41 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 06/17/2026
+//! Last Updated: 06/19/2026
 
 IDENT = letter (letter | digit | "_")* ;
 
 literal = 
       bool_literal
     | int_literal
-    | float_literal ;
+    | real_literal 
+    | complex_literal 
+    | math_const ;
 
 bool_literal = "true" | "false"
 int_literal = digit+ ;
-float_literal = digit+ ("." digit+)? ;
+real_literal = digit+ ("." digit+)? ;
+complex_literal = "i" ;
+math_const = "e" | "pi" ;
 
-type = IDENT ;
-
-arg_list =
-    (IDENT "=" )? expr ("," (IDENT "=")? expr)* ;
-
-/////////////////////////////////////////////////
-
-program = (ent_decl | rel_decl | net_decl)* ;
-
-//////////////////////////////////////////////////
-
-ent_decl =
-    "ent" IDENT "=" ent_expr ";" ;
-
-ent_expr = 
-      builtin_ent
-    | enum_ent ;
-
-builtin_ent = 
+type = 
       "Bool"
     | "Int"
     | "Real"
-    | "Complex"
+    | "Complex" 
+    | mod_type
+    | IDENT ;
 
-enum_ent = 
-    "{"
-        enum_member
-        ("," enum_member)*
-    "}" ;
+mod_type = "Mod" "(" int_literal ")" ;
 
-enum_member =
-      IDENT
-    | literal ;
-
-///////////////////////////////////////////////////
-
-rel_decl =
-    "rel" IDENT ":" "(" param_list? ")" "->" type "=" (expr | block_expr) ;
-
-param_list =
-    param ("," param)* ;
-
-param =
-    IDENT ":" type ;
-
-block_expr = 
-    "{"
-        let_stmt*
-        expr
-    "}" ;
-
-let_stmt = "let" IDENT "=" expr ";" ;
+arg_list =
+    (IDENT "=" )? expr ("," (IDENT "=")? expr)* ;
 
 expr = 
     binary_expr
     | tuple_expr
     | match_expr
-    | sample_expr igraph;
+    | sample_expr ;
 
 binary_expr = equality ;
 
@@ -95,7 +59,7 @@ multiplicative =
     unary (("*" | "/") unary )* ;
 
 unary =
-      ("-" | "!") primary ;
+      ("-" | "!" | "~") primary ;
     | primary ;
 
 primary =
@@ -126,7 +90,7 @@ simple_pattern =
     | comparison_pattern ;
 
 tuple_pattern =
-    "(" pattern ("," pattern)+ ")" ;
+    "(" simple_pattern ("," simple_pattern)+ ")" ;
 
 comparison_pattern =
     ("<" | ">" | "<=" | ">=") expr ;
@@ -139,7 +103,42 @@ sample_expr =
 sample_arm =
     expr "=>" expr;
 
-//////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+program = (ent_decl | rel_decl | net_decl)* ;
+
+////////////////////////////////////////////////////////////////////////////////
+
+ent_decl =
+    "ent" IDENT "=" ent_expr ";" ;
+
+ent_expr = 
+      type
+    | set_ent ;
+
+set_ent = "{" IDENT ("," IDENT)* "}" ;
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+rel_decl =
+    "rel" IDENT ":" "(" param_list? ")" "->" type "=" (expr | block_expr) ;
+
+param_list =
+    param ("," param)* ;
+
+param =
+    IDENT ":" type ;
+
+block_expr = 
+    "{"
+        let_stmt*
+        expr
+    "}" ;
+
+let_stmt = "let" IDENT "=" expr ";" ;
+
+////////////////////////////////////////////////////////////////////////////////
 
 net_decl = 
     "net" IDENT "{"

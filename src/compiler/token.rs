@@ -9,7 +9,7 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 06/17/2026
+//! Last Updated: 06/19/2026
 
 #[derive(Debug, PartialEq)]
 pub enum Token {
@@ -25,10 +25,12 @@ pub enum Token {
     Init,   // init 
     Let,    // let
 
-    Bool,    // Bool
+    Bool,   // Bool
     Int,    // Int
     Real,   // Real
     Complex,// Complex
+    Mod,    // Mod
+
     I,      // i (sqrt(-1))
     E,      // e (constant)
     Pi,     // pi (constant)
@@ -61,6 +63,7 @@ pub enum Token {
     Carrot,   // ^
     Bar,      // |
     Ampersand // &
+    LogicNot  // ~
 
     Unknown(char),
     InvalidNum(String),

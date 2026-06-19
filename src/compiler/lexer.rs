@@ -11,7 +11,7 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 06/17/2026
+//! Last Updated: 06/19/2026
 
 use super::token::Token;
 
@@ -97,6 +97,7 @@ impl<'a> Lexer<'a> {
                 b'^' => return Some(Token::Carrot),
                 b'|' => return Some(Token::Bar),
                 b'&' => return Some(Token::Ampersand),
+                b'~' => return Some(Token::LogicNot),
 
                 // Unknown
                 _ => return Some(Token::Unknown(c as char)),
@@ -170,6 +171,7 @@ impl<'a> Lexer<'a> {
             "Real"   => Token::Real,
             "Int"    => Token::Int,
             "Complex"=> Token::Complex,
+            "Mod"    => Token::Mod,
             "i"      => Token::I,
             "e"      => Token::E,
             "pi"     => Token::Pi,
