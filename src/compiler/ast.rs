@@ -208,5 +208,5 @@ struct: Port {
 }
 
 struct NetAssignment {
-
+    // TODO
 }
