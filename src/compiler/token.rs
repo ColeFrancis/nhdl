@@ -9,7 +9,7 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 06/19/2026
+//! Last Updated: 06/20/2026
 
 #[derive(Debug, PartialEq)]
 pub enum Token {
@@ -28,10 +28,8 @@ pub enum Token {
     Bool,   // Bool
     Int,    // Int
     Real,   // Real
-    Complex,// Complex
     Mod,    // Mod
 
-    I,      // i (sqrt(-1))
     E,      // e (constant)
     Pi,     // pi (constant)
 
@@ -60,10 +58,9 @@ pub enum Token {
     Minus,    // -
     Asterisk, // *
     Slash,    // /
-    Carrot,   // ^
-    Bar,      // |
-    Ampersand // &
-    LogicNot  // ~
+    Caret,    // ^
+    BoolNot,  // ~
+    Or,       // |
 
     Unknown(char),
     InvalidNum(String),

@@ -8,7 +8,7 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 06/18/2026
+//! Last Updated: 06/20/2026
 
 struct Program {
     items: Vec<Item>,
@@ -24,18 +24,19 @@ enum Item {
 /// Common AST elements
 ////////////////////////////////////////////////////////////////////////////////
 
+type Ident = String;
+
 enum Type {
     Bool,
     Int,
     Real,
-    Complex,
     Mod(i64),
-    CustomType(String),
+    CustomType(Ident),
 }
 
 enum Expr {
     Literal(Literal),
-    Ident(String),
+    Ident(Ident),
     Unary(UnaryExpr),
     Binary(BinaryExpr),
     Tuple(TupleExpr),
@@ -47,7 +48,6 @@ enum Literal {
     Bool(bool),
     Int(i64),
     Real(f64),
-    Complex,
     Const(MathConst),
 }
 
@@ -62,8 +62,9 @@ struct UnaryExpr {
 }
 
 enum UnaryOp {
-    Neg,
-    Not,
+    Neg,    // -
+    Not,    // !
+    BitNot, // ~
 }
 
 struct BinaryExpr {
@@ -73,15 +74,8 @@ struct BinaryExpr {
 }
 
 enum BinaryOp {
-    Eq(EqOp),
     Comp(CompOp),
     Arith(ArithOp),
-    Logic(LogicOp),
-}
-
-enum EqOp {
-    Eq,         // ==
-    Neq,        // !=
 }
 
 enum CompOp {
@@ -96,12 +90,7 @@ enum ArithOp {
     Sub,        // -
     Mul,        // *
     Div,        // /
-}
-
-enum LogicOp {
-    And,        // &
-    Or,         // |
-    LogicNot,   // ~
+    Pow,        // ^
 }
 
 struct TupleExpr {
@@ -109,7 +98,7 @@ struct TupleExpr {
 }
 
 struct MatchExpr {
-    sctutinee: Expr,
+    scrutinee: Box<Expr>,
     arms: Vec<MatchArm>,
 }
 
@@ -120,28 +109,28 @@ struct MatchArm {
 
 enum SimplePattern {
     Default,
-    Literal,
-    Ident(String),
+    Literal(Literal),
+    Ident(Ident),
     Tuple(Vec<SimplePattern>),
     Comparison(ComparisonPattern),
 }
 
 struct ComparisonPattern {
     op: CompOp,
-    expr: Expr,
+    expr: Box<Expr>,
 }
 
 struct SampleExpr {
-    arms: Vec<SampArm>,
+    arms: Vec<SampleArm>,
 }
 
-struct SampArm {
+struct SampleArm {
     prob: Expr,
     expr: Expr,
 }
 
 struct Param {
-    name: String,
+    name: Ident,
     param_type: Type,
 }
 
@@ -150,13 +139,13 @@ struct Param {
 ////////////////////////////////////////////////////////////////////////////////
 
 struct EntDecl {
-    name: String,
+    name: Ident,
     expr: EntExpr,
 }
 
 enum EntExpr {
-    Type,
-    SetEnt(Vec<Ident(String)>),
+    Type(Type),
+    SetEnt(Vec<Ident>),
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -164,7 +153,7 @@ enum EntExpr {
 ////////////////////////////////////////////////////////////////////////////////
 
 struct RelDecl {
-    name: String,
+    name: Ident,
     params: Vec<Param>,
     return_type: Type,
     body: RelBody,
@@ -181,7 +170,7 @@ struct BlockExpr {
 }
 
 struct LetStatement {
-    name: String,
+    name: Ident,
     expr: Expr,
 }
 
@@ -190,11 +179,15 @@ struct LetStatement {
 ////////////////////////////////////////////////////////////////////////////////
 
 struct NetDecl {
-    name: String,
-    inputs: Vec<Param>,
-    outputs: Vec<Param>,
-    inits: Vec<NetInit>,
-    assignments: Vec<NetAssignment>,
+    name: Ident,
+    items: Vec<NetItem>,
+}
+
+enum NetItem {
+    Input(Param),
+    Output(Param),
+    Init(NetInit),
+    RelInst(RelInst),
 }
 
 struct NetInit {
@@ -202,11 +195,8 @@ struct NetInit {
     val: Expr,
 }
 
-struct: Port {
-    name: String,
-    port_type: Type,
-}
-
-struct NetAssignment {
-    // TODO
+struct RelInst {
+    asignee: Ident,
+    rel: Ident,
+    args: Vec<Expr>, 
 }

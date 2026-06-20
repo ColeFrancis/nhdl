@@ -7,12 +7,14 @@
     - Write parser
     - graph rewriting
 
-- add way to change how metastable operations are handled
-    - random (current) or synchronously
-    - with current, evaulating an atomata would explode in complexity
+
 
 # Possible future extensions
 
+- Nest networks inside of networks
+- Tuples (chisen bundles) and arrays of entites in networks
+- Complex numbers
+- Lambda expressons (somehow)
 - way to randomly place and connect entities and relations in nets
  
 # Analytical tools to add

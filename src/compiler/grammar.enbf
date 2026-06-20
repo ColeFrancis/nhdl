@@ -8,7 +8,7 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 06/19/2026
+//! Last Updated: 06/20/2026
 
 IDENT = letter (letter | digit | "_")* ;
 
@@ -16,27 +16,24 @@ literal =
       bool_literal
     | int_literal
     | real_literal 
-    | complex_literal 
     | math_const ;
 
 bool_literal = "true" | "false"
 int_literal = digit+ ;
 real_literal = digit+ ("." digit+)? ;
-complex_literal = "i" ;
 math_const = "e" | "pi" ;
 
 type = 
       "Bool"
     | "Int"
-    | "Real"
-    | "Complex" 
+    | "Real" 
     | mod_type
     | IDENT ;
 
 mod_type = "Mod" "(" int_literal ")" ;
 
 arg_list =
-    (IDENT "=" )? expr ("," (IDENT "=")? expr)* ;
+    expr ("," expr)* ;
 
 expr = 
     binary_expr
@@ -44,10 +41,7 @@ expr =
     | match_expr
     | sample_expr ;
 
-binary_expr = equality ;
-
-equality =
-    comparison (("==" | "!=") comparison)* ;
+binary_expr = comparison ;
 
 comparison = 
     additive (("<" | ">" | "<=" | ">=") additive)* ;
@@ -59,8 +53,11 @@ multiplicative =
     unary (("*" | "/") unary )* ;
 
 unary =
-      ("-" | "!" | "~") primary ;
-    | primary ;
+      ("-" | "!" | "~") unary 
+    | exponent ;
+    
+exponent = 
+    primary ("^" exponent)? ;
 
 primary =
       literal
@@ -149,7 +146,7 @@ module_item =
       input_decl
     | output_decl
     | init_decl
-    | assignment ;
+    | rel_inst ;
 
 input_decl =
     "input" IDENT ":" type ";" ;
@@ -160,20 +157,7 @@ output_decl =
 init_decl = 
     "init" IDENT ":" type "=" expr ";" ;
 
-assignment = 
-    path "=" (inst | path) ";" ;
-
-path =
-      tuple_path
-    | simple_path ;
-
-tuple_path =
-    "(" simple_path ("," simple_path)+ ")" ;
-
-simple_path = 
-    IDENT ("." IDENT)* ;
-
-inst = 
-    IDENT "(" arg_list? ")" ;
+rel_inst = 
+    IDENT "=" IDENT "(" arg_list? ")" ;
 
 /////////////////////////////////////////////////
