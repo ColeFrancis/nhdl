@@ -53,6 +53,7 @@ ent R = Real;
 ent COIN = {H, T};
 ent Bool = {0, 1};
 ent Z4 = Mod(4);
+ent spike = Impulse;
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 Relations: nodes of the network. Stateless. Define simple relations between states.
@@ -110,8 +111,8 @@ rel NOISE : (x:R) -> R =
 // Returns a 1 if x is over some threshold
 rel THRESH : (x:R) -> Bool = 
     match (x) {
-        (>= 1) => 1,
-        (_) => 0
+        (>= 1) => true,
+        (_) => false
     };
 
 rel CUSTOM_BINOM : (p : Real) -> Bool = 
@@ -121,7 +122,7 @@ rel CUSTOM_BINOM : (p : Real) -> Bool =
     };
 
 // Simulates the rule in the cellular atomata "conway's game of life"
-rel LIFE : (u:Bool, ur:Bool, r:Bool, rd:Bool, d:Bool, dl:Bool, l:Bool, ul:Bool, c:Bool) -> Bool = {
+rel LIFE : (u:Mod(2), ur:Mod(2), r:Mod(2), rd:Mod(2), d:Mod(2), dl:Mod(2), l:Mod(2), ul:Mod(2), c:Mod(2)) -> Mod(2) = {
     let n = u+ur+r+rd+d+dl+l+ul;
     
     match (c) {
@@ -222,4 +223,116 @@ net DLATCH {
     // Allowed in my simulator.
     q = NAND(s, q_not);
     q_not = NAND(r, q);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+Leaky integrate and fire neuron example
+
+rel SYNAPSE: (spike_in: Inpulse, weight: Real, last_potential: Real) -> Real = {
+    match (spike_in) {
+        true => last_potential + weight,
+        _ => last_potential,
+    }
+}
+
+rel AXON: (curr_potential: Real) -> Impulse = {
+    let threshold = 10;
+
+    match (curr_potential) {
+        >= threshold => true,
+        _ => false,
+    }
+}
+
+rel BODY: (spike: Impulse, curr_potential: Real) -> Real {
+    let refrac_potential = 0;
+    let tau = 0.1;
+
+    match (spike) {
+        true => refrac_potential,
+        _ => curr_potential * (1 - tau),
+    }
+}
+
+net Neuron {
+    input spike_in: Impulse;
+    output spike_out: Impulse;
+
+    init weight: Impulse = 1;
+
+    /*               
+                           _________             ______
+        spike_in -------->|         |           | AXON |
+                          | SYNAPSE |---------->|______| ----------> spike_out
+        weight = 1 ------>|_________|      |               |
+                               ^        ___v__             |
+                               |-------| BODY |<------------
+                                       |______|
+    */
+
+    next_potential = SYNAPSE(spike_in, weight, curr_potential);
+
+    spike_out = AXON(next_potential);
+
+    curr_potential = BODY(spike_out, next_potential);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+Edge triggered, async active low reset d-flipflop (same circuit I built)
+
+rel NAND2: (a: Bool, b: Bool) -> Bool = ~(a*b);
+rel NAND3: (a: Bool, b: Bool, c: Bool) -> Bool = ~(a*b*c);
+
+net FLIP_FLOP {
+    input clk: Bool;
+    input rst_n: Bool;
+    input d: Bool;
+    output q: Bool;
+
+    s = NAND3(clk, rst_n, s_p);
+    s_p = NAND(r_p, s);
+
+    r = NAND3(clk, s, r_p);
+    r_p = NAND3(d, rst_n, r);
+
+    q = NAND(s, q_p);
+    q_p = NAND3(rst_n, r, q);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+RULE 110 on a ring-shaped grid of length 5
+
+rel RULE_110(l: Bool, c: Bool, r: Bool) -> Bool = {
+    match(l, c, r) {
+        (true, true, true ) => false,
+        (true, true, false) => true,
+        (true, false,true ) => true,
+        (true, false,false) => false,
+        (false,true, true ) => true,
+        (false,true, false) => true,
+        (false,false,true ) => true,
+        (false,false,false) => false,
+    }
+}
+
+net RULE_110_5 {
+    output c1: Bool;
+    output c2: Bool;
+    output c3: Bool;
+    output c4: Bool;
+    output c5: Bool;
+
+    // c1, c2, c3, c4, c5
+
+    init c1: Bool = false;
+    init c2: Bool = false;
+    init c3: Bool = false;
+    init c4: Bool = false;
+    init c5: Bool = true;
+
+    c1 = RULE_110(c5, c1, c2);
+    c2 = RULE_110(c1, c2, c3);
+    c3 = RULE_110(c2, c3, c4);
+    c4 = RULE_110(c3, c4, c5);
+    c5 = RULE_110(c4, c5, c1);
 }
