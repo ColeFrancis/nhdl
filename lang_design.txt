@@ -223,3 +223,9 @@ net DLATCH {
     q = NAND(s, q_not);
     q_not = NAND(r, q);
 }
+
+
+~ : Bool not
+* : Bool and
++ : Bool or
+^ : Exponent

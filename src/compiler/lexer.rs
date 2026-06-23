@@ -11,13 +11,16 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 06/20/2026
+//! Last Updated: 06/22/2026
 
-use super::token::Token;
+use super::token::{Token, TokenKind};
+
 
 pub struct Lexer<'a> {
     input: &'a [u8],
     pos: usize,
+    curr_line: usize,
+    curr_col: usize,
 }
 
 impl<'a> Lexer<'a> {
@@ -25,6 +28,8 @@ impl<'a> Lexer<'a> {
         Self {
             input: source.as_bytes(),
             pos: 0,
+            curr_line: 1,
+            curr_col: 0,
         }
     }
 
@@ -32,6 +37,7 @@ impl<'a> Lexer<'a> {
         let c = self.input.get(self.pos).copied();
         if c.is_some() {
             self.pos += 1;
+            self.curr_col += 1;
         }
         c
     }
@@ -42,64 +48,76 @@ impl<'a> Lexer<'a> {
 
     fn next_token(&mut self) -> Option<Token> {
         while let Some(c) = self._next() {
+            let line = self.curr_line;
+            let col = self.curr_col; 
             match c {
                 // Whitespace
-                b' ' | b'\n' | b'\r' => continue,
+                b' ' | b'\t' | b'\r' => continue,
+
+                b'\n' => {
+                    self.curr_line += 1;
+                    self.curr_col = 0;
+                    continue
+                }
 
                 // Comments
                 b'/' => {
                     if let Some(token) = self._handle_slash() {
-                        return Some(token);
+                        return Some(Token::new(token, line, col));
                     }
                     continue;
                 }
 
                 // Keywords and Identifiers
                 b'a'..=b'z' | b'A'..=b'Z' | b'_' => {
-                    return Some(self._handle_letter_underscore(c));
+                    let kind = self._handle_letter_underscore(c);
+
+                    return Some(Token::new(kind, line, col));
                 }
 
                 // Literals
                 b'0'..=b'9' => {
-                    return Some(self._handle_number(c));
+                    let kind = self._handle_number(c);
+
+                    return Some(Token::new(kind, line, col));
                 }
 
                 // Punctuation
-                b':' => return Some(Token::Colon),
-                b';' => return Some(Token::Semicolon),
-                b',' => return Some(Token::Comma),
-                b'.' => return Some(Token::Period),
+                b':' => return Some(Token::new(TokenKind::Colon, line, col)),
+                b';' => return Some(Token::new(TokenKind::Semicolon, line, col)),
+                b',' => return Some(Token::new(TokenKind::Comma, line, col)),
+                b'.' => return Some(Token::new(TokenKind::Period, line, col)),
 
-                b'(' => return Some(Token::LParen),
-                b')' => return Some(Token::RParen),
-                b'{' => return Some(Token::LBrace),
-                b'}' => return Some(Token::RBrace),
+                b'(' => return Some(Token::new(TokenKind::LParen, line, col)),
+                b')' => return Some(Token::new(TokenKind::RParen, line, col)),
+                b'{' => return Some(Token::new(TokenKind::LBrace, line, col)),
+                b'}' => return Some(Token::new(TokenKind::RBrace, line, col)),
 
                 // Operators
                 b'-' => {
                     if self._peek() == Some(b'>') {
                         self._next();
-                        return Some(Token::Arrow);
+                        return Some(Token::new(TokenKind::Arrow, line, col));
                     } else {
-                        return Some(Token::Minus);
+                        return Some(Token::new(TokenKind::Minus, line, col));
                     }
                 }
                 b'=' => {
                     if self._peek() == Some(b'>') {
                         self._next();
-                        return Some(Token::FatArrow);
+                        return Some(Token::new(TokenKind::FatArrow, line, col));
                     } else {
-                        return Some(Token::Equals);
+                        return Some(Token::new(TokenKind::Equals, line, col));
                     }
                 }
-                b'+' => return Some(Token::Plus),
-                b'*' => return Some(Token::Asterisk),
-                b'^' => return Some(Token::Caret),
-                b'~' => return Some(Token::BoolNot),
-                b'|' => return Some(Token::Or),
+                b'+' => return Some(Token::new(TokenKind::Plus, line, col)),
+                b'*' => return Some(Token::new(TokenKind::Asterisk, line, col)),
+                b'^' => return Some(Token::new(TokenKind::Caret, line, col)),
+                b'~' => return Some(Token::new(TokenKind::BoolNot, line, col)),
+                b'|' => return Some(Token::new(TokenKind::Or, line, col)),
 
                 // Unknown
-                _ => return Some(Token::Unknown(c as char)),
+                _ => return Some(Token::new(TokenKind::Unknown(c as char), line, col)),
             }
         }
 
@@ -107,7 +125,7 @@ impl<'a> Lexer<'a> {
     }
 
     // Comments, slash token
-    fn _handle_slash(&mut self) -> Option<Token> {
+    fn _handle_slash(&mut self) -> Option<TokenKind> {
         match self._peek() {
             // Single line comment
             Some(b'/') => {
@@ -136,13 +154,13 @@ impl<'a> Lexer<'a> {
             }
             // Slash token
             _ => {
-                return Some(Token::Slash);
+                return Some(TokenKind::Slash);
             }
         }
     }
 
     // Keywords, Identifiers
-    fn _handle_letter_underscore(&mut self, first: u8) -> Token  {
+    fn _handle_letter_underscore(&mut self, first: u8) -> TokenKind  {
         let mut buf = String::new();
         buf.push(first as char);
 
@@ -157,29 +175,30 @@ impl<'a> Lexer<'a> {
         }
 
         match buf.as_str() {
-            "ent"    => Token::Ent,
-            "rel"    => Token::Rel,
-            "net"    => Token::Net,
-            "match"  => Token::Match,
-            "sample" => Token::Sample,
-            "input"  => Token::Input,
-            "output" => Token::Output,
-            "init"   => Token::Init,
-            "let"    => Token::Let,
-            "Bool"   => Token::Bool,
-            "Real"   => Token::Real,
-            "Int"    => Token::Int,
-            "Mod"    => Token::Mod,
-            "e"      => Token::E,
-            "pi"     => Token::Pi,
-            "true"   => Token::BoolLiteral(true),
-            "false"  => Token::BoolLiteral(false),
-            _        => Token::Identifier(buf),
+            "ent"     => TokenKind::Ent,
+            "rel"     => TokenKind::Rel,
+            "net"     => TokenKind::Net,
+            "match"   => TokenKind::Match,
+            "sample"  => TokenKind::Sample,
+            "input"   => TokenKind::Input,
+            "output"  => TokenKind::Output,
+            "init"    => TokenKind::Init,
+            "let"     => TokenKind::Let,
+            "Bool"    => TokenKind::Bool,
+            "Impulse" => TokenKind::Impulse,
+            "Real"    => TokenKind::Real,
+            "Int"     => TokenKind::Int,
+            "Mod"     => TokenKind::Mod,
+            "e"       => TokenKind::E,
+            "pi"      => TokenKind::Pi,
+            "true"    => TokenKind::BoolLiteral(true),
+            "false"   => TokenKind::BoolLiteral(false),
+            _         => TokenKind::Identifier(buf),
         }
     }
 
     // Literals
-    fn _handle_number(&mut self, first: u8) -> Token {
+    fn _handle_number(&mut self, first: u8) -> TokenKind {
         let mut buf = String::new();
         buf.push(first as char);
 
@@ -221,16 +240,16 @@ impl<'a> Lexer<'a> {
         }
 
         if !is_valid {
-            Token::InvalidNum(buf)
+            TokenKind::InvalidNum(buf)
         } else if is_float {
             match buf.parse::<f64>() {
-                Ok(n) => Token::RealLiteral(n),
-                Err(_) => Token::InvalidNum(buf),
+                Ok(n) => TokenKind::RealLiteral(n),
+                Err(_) => TokenKind::InvalidNum(buf),
             }
         } else {
             match buf.parse::<i64>() {
-                Ok(n) => Token::IntLiteral(n),
-                Err(_) => Token::InvalidNum(buf),
+                Ok(n) => TokenKind::IntLiteral(n),
+                Err(_) => TokenKind::InvalidNum(buf),
             }
         }
     }
@@ -247,6 +266,12 @@ impl<'a> Iterator for Lexer<'a> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use TokenKind::*;
+    use crate::compiler::token::TokenKind;
+
+    fn kinds(tokens: &[Token]) -> Vec<TokenKind> {
+        tokens.iter().map(|t| t.kind.clone()).collect()
+    }
 
     #[test]
     fn test_comments() {
@@ -265,7 +290,7 @@ mod test {
 
         let tokens: Vec<Token> = lexer.collect();
 
-        assert_eq!(tokens, vec![Token::LParen,Token::RParen, Token::FatArrow,Token::Semicolon]);
+        assert_eq!(kinds(&tokens), vec![LParen, RParen, FatArrow, Semicolon]);
     }
 
     #[test]
@@ -274,9 +299,9 @@ mod test {
 
         let tokens: Vec<Token> = lexer.collect();
 
-        assert_eq!(tokens, vec![Token::Ent,Token::Identifier("COIN".to_string())
-            ,Token::Equals,Token::LBrace,Token::Identifier("H".to_string()),Token::Comma
-            ,Token::Identifier("T".to_string()),Token::RBrace,Token::Semicolon]);
+        assert_eq!(kinds(&tokens), vec![Ent, Identifier("COIN".to_string())
+            , Equals, LBrace, Identifier("H".to_string()), Comma
+            , Identifier("T".to_string()), RBrace, Semicolon]);
     } 
 
     #[test]
@@ -285,7 +310,7 @@ mod test {
 
         let tokens: Vec<Token> = lexer.collect();
 
-        assert_eq!(tokens, vec![Token::Unknown('@')]);
+        assert_eq!(kinds(&tokens), vec![Unknown('@')]);
     }
 
     #[test]
@@ -294,30 +319,55 @@ mod test {
 
         let tokens: Vec<Token> = lexer.collect();
 
-        assert_eq!(tokens, vec![Token::InvalidNum("94f".to_string()),Token::InvalidNum("9.9.9".to_string())
-            ,Token::InvalidNum("10000000000000000000".to_string()),Token::IntLiteral(99)
-            , Token::RealLiteral(9.8),Token::IntLiteral(1000)]);
+        assert_eq!(kinds(&tokens), vec![InvalidNum("94f".to_string()), InvalidNum("9.9.9".to_string())
+            , InvalidNum("10000000000000000000".to_string()), IntLiteral(99)
+            , RealLiteral(9.8), IntLiteral(1000)]);
     }
 
     #[test]
     fn test_identifiers() {
-        let lexer = Lexer::new("id i ai_ _ai");
+        let lexer = Lexer::new("id ai_ _ai");
 
         let tokens: Vec<Token> = lexer.collect();
 
-        assert_eq!(tokens, vec![Token::Identifier("id".to_string()),Token::I
-            ,Token::Identifier("ai_".to_string()),Token::Identifier("_ai".to_string())]);
+        assert_eq!(kinds(&tokens), vec![Identifier("id".to_string())
+            , Identifier("ai_".to_string()), Identifier("_ai".to_string())]);
     }
 
     #[test]
     fn test_rel() {
-        let lexer = Lexer::new("rel A : (a:Real) -> Cmp = (a / 2)*i;");
+        let lexer = Lexer::new("rel A : (a:Real) -> Real = (a / 2);");
 
         let tokens: Vec<Token> = lexer.collect();
 
-        assert_eq!(tokens, vec![Token::Rel,Token::Identifier("A".to_string()),Token::Colon,Token::LParen
-        ,Token::Identifier("a".to_string()),Token::Colon,Token::Real,Token::RParen,Token::Arrow,Token::Cmp
-        ,Token::Equals,Token::LParen,Token::Identifier("a".to_string()),Token::Slash,Token::IntLiteral(2)
-        ,Token::RParen,Token::Asterisk,Token::I,Token::Semicolon]);
+        assert_eq!(kinds(&tokens), vec![Rel, Identifier("A".to_string()), Colon, LParen
+        , Identifier("a".to_string()), Colon, Real, RParen, Arrow, Real
+        , Equals, LParen, Identifier("a".to_string()), Slash, IntLiteral(2)
+        , RParen, Semicolon]);
+    }
+
+    #[test]
+    fn test_line_col() {
+        let lexer = Lexer::new(" a\nbc\td_ 67\n  / /* */;");
+
+        let tokens: Vec<Token> = lexer.collect();
+
+        assert_eq!(tokens[0].span.line, 1);
+        assert_eq!(tokens[0].span.col, 2);
+        
+        assert_eq!(tokens[1].span.line, 2);
+        assert_eq!(tokens[1].span.col, 1);
+        
+        assert_eq!(tokens[2].span.line, 2);
+        assert_eq!(tokens[2].span.col, 4);
+        
+        assert_eq!(tokens[3].span.line, 2);
+        assert_eq!(tokens[3].span.col, 7);
+
+        assert_eq!(tokens[4].span.line, 3);
+        assert_eq!(tokens[4].span.col, 3);
+
+        assert_eq!(tokens[5].span.line, 3);
+        assert_eq!(tokens[5].span.col, 10);
     }
 }

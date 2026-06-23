@@ -9,10 +9,28 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 06/20/2026
+//! Last Updated: 06/22/2026
 
 #[derive(Debug, PartialEq)]
-pub enum Token {
+pub struct Token {
+    pub kind: TokenKind,
+    pub span: Span,
+}
+
+impl Token {
+    pub fn new(kind: TokenKind, line: usize, col: usize) -> Self {
+        Self {
+            kind: kind,
+            span: Span {
+                line: line,
+                col: col,
+            }
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum TokenKind {
     // Keywords
     Ent,    // net
     Rel,    // rel
@@ -25,10 +43,11 @@ pub enum Token {
     Init,   // init 
     Let,    // let
 
-    Bool,   // Bool
-    Int,    // Int
-    Real,   // Real
-    Mod,    // Mod
+    Bool,    // Bool
+    Impulse, // Impulse
+    Int,     // Int
+    Real,    // Real
+    Mod,     // Mod
 
     E,      // e (constant)
     Pi,     // pi (constant)
@@ -64,4 +83,10 @@ pub enum Token {
 
     Unknown(char),
     InvalidNum(String),
+}
+
+#[derive(PartialEq, Debug)]
+pub struct Span {
+    pub line: usize,
+    pub col: usize,
 }

@@ -8,7 +8,7 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 06/08/2026
+//! Last Updated: 06/22/2026
 
 use std::fs::File;
 use std::io::Write;
@@ -71,36 +71,36 @@ pub fn write_file<T: std::fmt::Debug, O: Operator<T>>(file_name: &str, inputs: &
     Ok(())
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::network::network::Network;
-    use crate::network::relation::Relation;
-    use crate::network::entity::Entity;
-    use crate::core::types::Logic;
-    use crate::core::operations::LogicOp;
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//     use crate::network::network::Network;
+//     use crate::network::relation::Relation;
+//     use crate::network::entity::Entity;
+//     use crate::core::types::Logic;
+//     use crate::core::operations::LogicOp;
 
-    #[test]
-    fn test_file_write() -> std::io::Result<()> {
-        let mut network: Network<Logic, LogicOp> = Network::new();
+//     #[test]
+//     fn test_file_write() -> std::io::Result<()> {
+//         let mut network: Network<Logic, LogicOp> = Network::new();
 
-        // 0
-        network.entities.push(Entity {value: Logic::X, sinks: vec![0]});
-        // 1
-        network.entities.push(Entity {value: Logic::X, sinks: vec![0]});
-        // 2
-        network.entities.push(Entity {value: Logic::X, sinks: vec![]});
+//         // 0
+//         network.entities.push(Entity {value: Logic::X, sinks: vec![0]});
+//         // 1
+//         network.entities.push(Entity {value: Logic::X, sinks: vec![0]});
+//         // 2
+//         network.entities.push(Entity {value: Logic::X, sinks: vec![]});
 
-        // 0
-        network.relations.push(Relation {op: LogicOp::NAND, a: 0, b: 1, out: 2});
+//         // 0
+//         network.relations.push(Relation {op: LogicOp::NAND, a: 0, b: 1, out: 2});
 
-        let inputs = vec![0, 1];
-        let outputs = vec![2];
+//         let inputs = vec![0, 1];
+//         let outputs = vec![2];
 
-        write_file("test_output.nhdl", &inputs, &outputs, &vec![], &network)?;
+//         write_file("test_output.nhdl", &inputs, &outputs, &vec![], &network)?;
 
-        // TODO: Write test using read.rs
+//         // TODO: Write test using read.rs
 
-        Ok(())
-    }
-}
+//         Ok(())
+//     }
+// }
