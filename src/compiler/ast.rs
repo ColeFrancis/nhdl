@@ -8,13 +8,15 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 06/20/2026
+//! Last Updated: 06/25/2026
 
-struct Program {
+#[derive(PartialEq, Debug)]
+pub struct Program {
     items: Vec<Item>,
 }
 
-enum Item {
+#[derive(PartialEq, Debug)]
+pub enum Item {
     Ent(EntDecl),
     Rel(RelDecl),
     Net(NetDecl),
@@ -26,7 +28,8 @@ enum Item {
 
 type Ident = String;
 
-enum Type {
+#[derive(PartialEq, Debug)]
+pub enum Type {
     Bool,
     Int,
     Real,
@@ -34,58 +37,50 @@ enum Type {
     CustomType(Ident),
 }
 
-enum Expr {
+#[derive(PartialEq, Debug)]
+pub enum Expr {
     Literal(Literal),
     Ident(Ident),
     Unary(UnaryExpr),
     Binary(BinaryExpr),
-    Tuple(TupleExpr),
+    // Tuple(TupleExpr),
     Match(MatchExpr),
     Sample(SampleExpr),
 }
 
-enum Literal {
+#[derive(PartialEq, Debug)]
+pub enum Literal {
     Bool(bool),
+    Impulse(bool),
     Int(i64),
     Real(f64),
-    Const(MathConst),
 }
 
-enum MathConst {
-    E,
-    Pi,
-}
-
-struct UnaryExpr {
+#[derive(PartialEq, Debug)]
+pub struct UnaryExpr {
     op: UnaryOp,
     expr: Box<Expr>,
 }
 
-enum UnaryOp {
+#[derive(PartialEq, Debug)]
+pub enum UnaryOp {
     Neg,    // -
-    Not,    // !
     BitNot, // ~
 }
 
-struct BinaryExpr {
+#[derive(PartialEq, Debug)]
+pub struct BinaryExpr {
     left: Box<Expr>,
     op: BinaryOp,
     right: Box<Expr>,
 }
 
-enum BinaryOp {
-    Comp(CompOp),
-    Arith(ArithOp),
-}
-
-enum CompOp {
+#[derive(PartialEq, Debug)]
+pub enum BinaryOp {
     Lt,         // <
     Gt,         // >
     Le,         // <=
     Ge,         // >=
-}
-
-enum ArithOp {
     Add,        // +
     Sub,        // -
     Mul,        // *
@@ -93,21 +88,33 @@ enum ArithOp {
     Pow,        // ^
 }
 
-struct TupleExpr {
-    elements: Vec<Expr>,
+#[derive(PartialEq, Debug)]
+pub enum CompOp {
+    Lt,         // <
+    Gt,         // >
+    Le,         // <=
+    Ge,         // >=
 }
 
-struct MatchExpr {
+// #[derive(PartialEq, Debug)]
+// pub struct TupleExpr {
+//     elements: Vec<Expr>,
+// }
+
+#[derive(PartialEq, Debug)]
+pub struct MatchExpr {
     scrutinee: Box<Expr>,
     arms: Vec<MatchArm>,
 }
 
-struct MatchArm {
+#[derive(PartialEq, Debug)]
+pub struct MatchArm {
     pattern: Vec<SimplePattern>,
     expr: Expr,
 }
 
-enum SimplePattern {
+#[derive(PartialEq, Debug)]
+pub enum SimplePattern {
     Default,
     Literal(Literal),
     Ident(Ident),
@@ -115,21 +122,25 @@ enum SimplePattern {
     Comparison(ComparisonPattern),
 }
 
-struct ComparisonPattern {
+#[derive(PartialEq, Debug)]
+pub struct ComparisonPattern {
     op: CompOp,
     expr: Box<Expr>,
 }
 
-struct SampleExpr {
+#[derive(PartialEq, Debug)]
+pub struct SampleExpr {
     arms: Vec<SampleArm>,
 }
 
-struct SampleArm {
+#[derive(PartialEq, Debug)]
+pub struct SampleArm {
     prob: Expr,
     expr: Expr,
 }
 
-struct Param {
+#[derive(PartialEq, Debug)]
+pub struct Param {
     name: Ident,
     param_type: Type,
 }
@@ -138,12 +149,14 @@ struct Param {
 /// Entities
 ////////////////////////////////////////////////////////////////////////////////
 
-struct EntDecl {
+#[derive(PartialEq, Debug)]
+pub struct EntDecl {
     name: Ident,
     expr: EntExpr,
 }
 
-enum EntExpr {
+#[derive(PartialEq, Debug)]
+pub enum EntExpr {
     Type(Type),
     SetEnt(Vec<Ident>),
 }
@@ -152,24 +165,28 @@ enum EntExpr {
 /// Relations
 ////////////////////////////////////////////////////////////////////////////////
 
-struct RelDecl {
+#[derive(PartialEq, Debug)]
+pub struct RelDecl {
     name: Ident,
     params: Vec<Param>,
     return_type: Type,
     body: RelBody,
 }
 
-enum RelBody {
+#[derive(PartialEq, Debug)]
+pub enum RelBody {
     Expr(Expr),
     Block(BlockExpr),
 }
 
-struct BlockExpr {
+#[derive(PartialEq, Debug)]
+pub struct BlockExpr {
     statements: Vec<LetStatement>,
     expr: Expr,
 }
 
-struct LetStatement {
+#[derive(PartialEq, Debug)]
+pub struct LetStatement {
     name: Ident,
     expr: Expr,
 }
@@ -178,24 +195,28 @@ struct LetStatement {
 /// Networks
 ////////////////////////////////////////////////////////////////////////////////
 
-struct NetDecl {
+#[derive(PartialEq, Debug)]
+pub struct NetDecl {
     name: Ident,
     items: Vec<NetItem>,
 }
 
-enum NetItem {
+#[derive(PartialEq, Debug)]
+pub enum NetItem {
     Input(Param),
     Output(Param),
     Init(NetInit),
     RelInst(RelInst),
 }
 
-struct NetInit {
+#[derive(PartialEq, Debug)]
+pub struct NetInit {
     param: Param,
     val: Expr,
 }
 
-struct RelInst {
+#[derive(PartialEq, Debug)]
+pub struct RelInst {
     asignee: Ident,
     rel: Ident,
     args: Vec<Expr>, 

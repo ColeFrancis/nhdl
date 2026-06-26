@@ -9,9 +9,9 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 06/22/2026
+//! Last Updated: 06/25/2026
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Token {
     pub kind: TokenKind,
     pub span: Span,
@@ -49,10 +49,7 @@ pub enum TokenKind {
     Real,    // Real
     Mod,     // Mod
 
-    E,      // e (constant)
-    Pi,     // pi (constant)
-
-    Identifier(String),
+    Ident(String),
     BoolLiteral(bool),
     IntLiteral(i64),
     RealLiteral(f64),
@@ -68,7 +65,10 @@ pub enum TokenKind {
     LBrace, // {
     RBrace, // }
 
-    // TODO: >, <, >=, <=
+    Gt, // >
+    Lt, // <
+    Ge, // >=
+    Le, // <=
 
     Arrow,    // ->
     FatArrow, // =>
@@ -78,14 +78,15 @@ pub enum TokenKind {
     Asterisk, // *
     Slash,    // /
     Caret,    // ^
-    BoolNot,  // ~
+    BitNot,  // ~
     Or,       // |
 
     Unknown(char),
     InvalidNum(String),
+    Eof,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Span {
     pub line: usize,
     pub col: usize,

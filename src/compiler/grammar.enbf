@@ -53,7 +53,7 @@ multiplicative =
     unary (("*" | "/") unary )* ;
 
 unary =
-      ("-" | "!" | "~") unary 
+      ("-" | "~") unary 
     | exponent ;
     
 exponent = 
@@ -62,7 +62,6 @@ exponent =
 primary =
       literal
     | IDENT
-    | tuple_expr
     | "(" expr ")" ;
 
 tuple_expr =

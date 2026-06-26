@@ -5,13 +5,13 @@
 //! ## Invariants
 //!
 //! - operations must be binary (for now)
-//! - Lexer returns none upon EOF
+//! - Lexer returns none upon Eof
 //! - All errors in parsing potential tokens result in an Invalid token
 //! - All tokens must be parsable
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 06/22/2026
+//! Last Updated: 06/25/2026
 
 use super::token::{Token, TokenKind};
 
@@ -21,6 +21,7 @@ pub struct Lexer<'a> {
     pos: usize,
     curr_line: usize,
     curr_col: usize,
+    done: bool,
 }
 
 impl<'a> Lexer<'a> {
@@ -30,10 +31,11 @@ impl<'a> Lexer<'a> {
             pos: 0,
             curr_line: 1,
             curr_col: 0,
+            done: false,
         }
     }
 
-    fn _next(&mut self) -> Option<u8> {
+    fn next(&mut self) -> Option<u8> {
         let c = self.input.get(self.pos).copied();
         if c.is_some() {
             self.pos += 1;
@@ -42,12 +44,12 @@ impl<'a> Lexer<'a> {
         c
     }
 
-    fn _peek(&self) -> Option<u8> {
+    fn peek(&self) -> Option<u8> {
         self.input.get(self.pos).copied()
     }
 
     fn next_token(&mut self) -> Option<Token> {
-        while let Some(c) = self._next() {
+        while let Some(c) = self.next() {
             let line = self.curr_line;
             let col = self.curr_col; 
             match c {
@@ -62,7 +64,7 @@ impl<'a> Lexer<'a> {
 
                 // Comments
                 b'/' => {
-                    if let Some(token) = self._handle_slash() {
+                    if let Some(token) = self.handle_slash() {
                         return Some(Token::new(token, line, col));
                     }
                     continue;
@@ -70,14 +72,14 @@ impl<'a> Lexer<'a> {
 
                 // Keywords and Identifiers
                 b'a'..=b'z' | b'A'..=b'Z' | b'_' => {
-                    let kind = self._handle_letter_underscore(c);
+                    let kind = self.handle_letter_underscore(c);
 
                     return Some(Token::new(kind, line, col));
                 }
 
                 // Literals
                 b'0'..=b'9' => {
-                    let kind = self._handle_number(c);
+                    let kind = self.handle_number(c);
 
                     return Some(Token::new(kind, line, col));
                 }
@@ -94,17 +96,33 @@ impl<'a> Lexer<'a> {
                 b'}' => return Some(Token::new(TokenKind::RBrace, line, col)),
 
                 // Operators
+                b'>' => {
+                    if self.peek() == Some(b'=') {
+                        self.next();
+                        return Some(Token::new(TokenKind::Ge, line, col));
+                    } else {
+                        return Some(Token::new(TokenKind::Gt, line, col));
+                    }
+                }
+                b'<' => {
+                    if self.peek() == Some(b'=') {
+                        self.next();
+                        return Some(Token::new(TokenKind::Le, line, col));
+                    } else {
+                        return Some(Token::new(TokenKind::Gt, line, col));
+                    }
+                }
                 b'-' => {
-                    if self._peek() == Some(b'>') {
-                        self._next();
+                    if self.peek() == Some(b'>') {
+                        self.next();
                         return Some(Token::new(TokenKind::Arrow, line, col));
                     } else {
                         return Some(Token::new(TokenKind::Minus, line, col));
                     }
                 }
                 b'=' => {
-                    if self._peek() == Some(b'>') {
-                        self._next();
+                    if self.peek() == Some(b'>') {
+                        self.next();
                         return Some(Token::new(TokenKind::FatArrow, line, col));
                     } else {
                         return Some(Token::new(TokenKind::Equals, line, col));
@@ -113,7 +131,7 @@ impl<'a> Lexer<'a> {
                 b'+' => return Some(Token::new(TokenKind::Plus, line, col)),
                 b'*' => return Some(Token::new(TokenKind::Asterisk, line, col)),
                 b'^' => return Some(Token::new(TokenKind::Caret, line, col)),
-                b'~' => return Some(Token::new(TokenKind::BoolNot, line, col)),
+                b'~' => return Some(Token::new(TokenKind::BitNot, line, col)),
                 b'|' => return Some(Token::new(TokenKind::Or, line, col)),
 
                 // Unknown
@@ -121,17 +139,22 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        None
+        if self.done {
+            None
+        } else {
+            self.done = true;
+            Some(Token::new(TokenKind::Eof, self.curr_line, self.curr_col))
+        }
     }
 
     // Comments, slash token
-    fn _handle_slash(&mut self) -> Option<TokenKind> {
-        match self._peek() {
+    fn handle_slash(&mut self) -> Option<TokenKind> {
+        match self.peek() {
             // Single line comment
             Some(b'/') => {
-                self._next();
+                self.next();
 
-                while let Some(c) = self._next() {
+                while let Some(c) = self.next() {
                     if c == b'\n' {
                         break;
                     }
@@ -141,11 +164,11 @@ impl<'a> Lexer<'a> {
             }
             // Multi-line comment
             Some(b'*') => {
-                self._next();
+                self.next();
 
-                while let Some(c) = self._next() {
-                    if c == b'*' && self._peek() == Some(b'/') {
-                        self._next();
+                while let Some(c) = self.next() {
+                    if c == b'*' && self.peek() == Some(b'/') {
+                        self.next();
                         return None;
                     }
                 }
@@ -160,15 +183,15 @@ impl<'a> Lexer<'a> {
     }
 
     // Keywords, Identifiers
-    fn _handle_letter_underscore(&mut self, first: u8) -> TokenKind  {
+    fn handle_letter_underscore(&mut self, first: u8) -> TokenKind  {
         let mut buf = String::new();
         buf.push(first as char);
 
-        while let Some(c) = self._peek() {
+        while let Some(c) = self.peek() {
             match c {
                 b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' | b'_' => {
                     buf.push(c as char);
-                    self._next();
+                    self.next();
                 }
                 _ => break,
             }
@@ -189,50 +212,48 @@ impl<'a> Lexer<'a> {
             "Real"    => TokenKind::Real,
             "Int"     => TokenKind::Int,
             "Mod"     => TokenKind::Mod,
-            "e"       => TokenKind::E,
-            "pi"      => TokenKind::Pi,
             "true"    => TokenKind::BoolLiteral(true),
             "false"   => TokenKind::BoolLiteral(false),
-            _         => TokenKind::Identifier(buf),
+            _         => TokenKind::Ident(buf),
         }
     }
 
     // Literals
-    fn _handle_number(&mut self, first: u8) -> TokenKind {
+    fn handle_number(&mut self, first: u8) -> TokenKind {
         let mut buf = String::new();
         buf.push(first as char);
 
         let mut is_valid = true;
         let mut is_float = false;
 
-        while let Some(c) = self._peek() {
+        while let Some(c) = self.peek() {
             match c {
                 b'0'..=b'9' => {
                     buf.push(c as char);
-                    self._next();
+                    self.next();
                 }
 
                 b'.' if !is_float => {
                     is_float = true;
                     buf.push('.');
-                    self._next();
+                    self.next();
                 }
 
                 b'.' if is_float => {
                     is_valid = false;
                     buf.push('.');
-                    self._next();
+                    self.next();
                 }
 
                 // Underscores are skipped in numbers
                 b'_' => {
-                    self._next();
+                    self.next();
                 }
 
                 b'a'..=b'z' | b'A'..=b'Z' => {
                     is_valid = false;
                     buf.push(c as char);
-                    self._next();
+                    self.next();
                 }
 
                 _ => break,
@@ -275,13 +296,17 @@ mod test {
 
     #[test]
     fn test_comments() {
-        let mut lexer = Lexer::new("// asdklf;jsk \n   ");
+        let lexer = Lexer::new("// asdklf;jsk \n   ");
 
-        assert_eq!(lexer.next(), None);
+        let tokens: Vec<Token> = lexer.collect();
 
-        let mut lexer = Lexer::new("   /* jalsdjf\nasjflds*/");
+        assert_eq!(kinds(&tokens), vec![Eof]);
 
-        assert_eq!(lexer.next(), None);
+        let lexer = Lexer::new("   /* jalsdjf\nasjflds*/");
+
+        let tokens: Vec<Token> = lexer.collect();
+
+        assert_eq!(kinds(&tokens), vec![Eof]);
     }
 
     #[test]
@@ -290,7 +315,7 @@ mod test {
 
         let tokens: Vec<Token> = lexer.collect();
 
-        assert_eq!(kinds(&tokens), vec![LParen, RParen, FatArrow, Semicolon]);
+        assert_eq!(kinds(&tokens), vec![LParen, RParen, FatArrow, Semicolon, Eof]);
     }
 
     #[test]
@@ -299,9 +324,9 @@ mod test {
 
         let tokens: Vec<Token> = lexer.collect();
 
-        assert_eq!(kinds(&tokens), vec![Ent, Identifier("COIN".to_string())
-            , Equals, LBrace, Identifier("H".to_string()), Comma
-            , Identifier("T".to_string()), RBrace, Semicolon]);
+        assert_eq!(kinds(&tokens), vec![Ent, Ident("COIN".to_string())
+            , Equals, LBrace, Ident("H".to_string()), Comma
+            , Ident("T".to_string()), RBrace, Semicolon, Eof]);
     } 
 
     #[test]
@@ -310,7 +335,7 @@ mod test {
 
         let tokens: Vec<Token> = lexer.collect();
 
-        assert_eq!(kinds(&tokens), vec![Unknown('@')]);
+        assert_eq!(kinds(&tokens), vec![Unknown('@'), Eof]);
     }
 
     #[test]
@@ -321,7 +346,7 @@ mod test {
 
         assert_eq!(kinds(&tokens), vec![InvalidNum("94f".to_string()), InvalidNum("9.9.9".to_string())
             , InvalidNum("10000000000000000000".to_string()), IntLiteral(99)
-            , RealLiteral(9.8), IntLiteral(1000)]);
+            , RealLiteral(9.8), IntLiteral(1000), Eof]);
     }
 
     #[test]
@@ -330,8 +355,8 @@ mod test {
 
         let tokens: Vec<Token> = lexer.collect();
 
-        assert_eq!(kinds(&tokens), vec![Identifier("id".to_string())
-            , Identifier("ai_".to_string()), Identifier("_ai".to_string())]);
+        assert_eq!(kinds(&tokens), vec![Ident("id".to_string())
+            , Ident("ai_".to_string()), Ident("_ai".to_string()), Eof]);
     }
 
     #[test]
@@ -340,10 +365,10 @@ mod test {
 
         let tokens: Vec<Token> = lexer.collect();
 
-        assert_eq!(kinds(&tokens), vec![Rel, Identifier("A".to_string()), Colon, LParen
-        , Identifier("a".to_string()), Colon, Real, RParen, Arrow, Real
-        , Equals, LParen, Identifier("a".to_string()), Slash, IntLiteral(2)
-        , RParen, Semicolon]);
+        assert_eq!(kinds(&tokens), vec![Rel, Ident("A".to_string()), Colon, LParen
+        , Ident("a".to_string()), Colon, Real, RParen, Arrow, Real
+        , Equals, LParen, Ident("a".to_string()), Slash, IntLiteral(2)
+        , RParen, Semicolon, Eof]);
     }
 
     #[test]
