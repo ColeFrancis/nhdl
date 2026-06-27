@@ -44,7 +44,7 @@ impl Parser {
         let token = self.next();
 
         if token.kind != expected {
-            panic!("expected {:?}, got {:?}", expected , token.kind);
+            panic!("expected {:?}, got {:?}\nTODO: elegant error handling", expected , token.kind);
         }
     }
 
@@ -105,16 +105,16 @@ impl Parser {
             // TokenKind::Sample => {
 
             // }
-            _ => panic!("unexpected prefix"),
+            _ => panic!("TODO: Elegent Error Handling"),
         }
     }
 
     fn infix_into(&self, op: &TokenKind) -> Option<(BinaryOp, u8, u8)> {
         match op {
-            TokenKind::Gt       => Some((BinaryOp::Gt, 1, 2)),
-            TokenKind::Lt       => Some((BinaryOp::Lt, 1, 2)),
-            TokenKind::Ge       => Some((BinaryOp::Ge, 1, 2)),
-            TokenKind::Le       => Some((BinaryOp::Le, 1, 2)),
+            TokenKind::Gt       => Some((BinaryOp::Gt,   1,  2)),
+            TokenKind::Lt       => Some((BinaryOp::Lt,   1,  2)),
+            TokenKind::Ge       => Some((BinaryOp::Ge,   1,  2)),
+            TokenKind::Le       => Some((BinaryOp::Le,   1,  2)),
             TokenKind::Plus     => Some((BinaryOp::Add, 10, 11)),
             TokenKind::Minus    => Some((BinaryOp::Sub, 10, 11)),
             TokenKind::Asterisk => Some((BinaryOp::Mul, 20, 21)),
