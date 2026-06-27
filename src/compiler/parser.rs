@@ -8,7 +8,7 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 06/25/2026
+//! Last Updated: 06/26/2026
 
 use super::token::{Token, TokenKind};
 use super::ast::*;
@@ -30,7 +30,7 @@ impl Parser {
         &self.tokens[self.current]
     }
 
-    fn advance(&mut self) -> Token {
+    fn next(&mut self) -> Token {
         let token = self.tokens[self.current].clone();
         self.current += 1;
         token
@@ -40,101 +40,89 @@ impl Parser {
         self.peek().kind == TokenKind::Eof
     }
 
+    fn expect(&mut self, expected: TokenKind) {
+        let token = self.next();
+
+        if token.kind != expected {
+            panic!("expected {:?}, got {:?}", expected , token.kind);
+        }
+    }
+
+    fn parse_expr(&mut self, min_bp: u8) -> Expr {
+        let mut lhs = self.parse_prefix();
+
+        loop {
+            let Some((op, left_bp, right_bp)) = 
+                self.infix_into(&self.peek().kind)
+            else {
+                break;
+            };
+
+            if left_bp < min_bp {
+                break;
+            }
+
+            self.next();
+            
+            let rhs = self.parse_expr(right_bp);
+
+            lhs = Expr::Binary(BinaryExpr {
+                left: Box::new(lhs),
+                op,
+                right: Box::new(rhs),
+            });
+        }
+
+        lhs
+    }
+
     fn parse_prefix(&mut self) -> Expr {
-        match self.advance().kind {
+        match self.next().kind {
             TokenKind::BoolLiteral(n) => Expr::Literal(Literal::Bool(n)),
             TokenKind::IntLiteral(n)  => Expr::Literal(Literal::Int(n)),
             TokenKind::RealLiteral(n) => Expr::Literal(Literal::Real(n)),
             
             TokenKind::Ident(str) => Expr::Ident(str),
 
-            // TokenKind::Minus => {
-            //     let rhs = parse_expr_bp();
-            //     Expr::Unary(UnaryExpr {op: UnaryOp::Neg, expr: Box::new(rhs)})
-            // }
-            // TokenKind::BitNot => {
-            //     let rhs = parse_expr_bp();
-            //     Expr::Unary(UnaryExpr {op: UnaryOp::BitNot, expr: Box::new(rhs)})
-            // }
+            TokenKind::Minus => {
+                let rhs = self.parse_expr(25); // Unary binding power
+                Expr::Unary(UnaryExpr {op: UnaryOp::Neg, expr: Box::new(rhs)})
+            }
+            TokenKind::BitNot => {
+                let rhs = self.parse_expr(25); // Unary binding power
+                Expr::Unary(UnaryExpr {op: UnaryOp::BitNot, expr: Box::new(rhs)})
+            }
 
-            // TokenKind::LParen => {
-            //     let expr = parse_expr_bp(0);
-            //     expect(RParen)
-            //     expr
+            TokenKind::LParen => {
+                let expr = self.parse_expr(0);
+                self.expect(TokenKind::RParen);
+                expr
+            }
+
+            // TokenKind::Match => {
+
+            // }
+            // TokenKind::Sample => {
+
             // }
             _ => panic!("unexpected prefix"),
         }
     }
 
-    /*
-        parse_expr(min_bp = 0):
-            left = parse_prefix();
-
-            while min_bp < binding_power(peek()):
-                token = advance()
-                left = led(token, left)
-
-            return left
-    */
-    // fn parse_expr_bp(&mut self, min_bp: u8) -> Expr {
-    //     let lhs = self.parse_prefix();
-
-    //     loop {
-    //         let op = self.peek().kind;
-
-    //         let (left_bp, right_bp) = 
-    //             match self.infix_binding_power(op) {
-    //                 Some(bp) => bp,
-    //                 None => break,
-    //             };
-
-    //             if left_bp < min_bp {
-    //                 break;
-    //             }
-
-    //             self.advance();
-    //     }
-    // }
-
-    // fn infix_binding_power(&self, op: TokenKind) -> Option<(u8, u8)> {
-    //     match op {
-    //         Gt | Ge | Lt | Le => Some((1, 1)),
-    //         Plus | Minus      => Some((10, 11)),
-    //         Asterisk | Slash  => Some((20, 21)),
-    //         Caret             => Some((31, 30)),
-    //         _ => None,
-    //     }
-    // }
-
-    // fn parse_expr_bp(&mut self, min_bp: u8) -> Expr {
-    //     let lhs = self.parse_prefix();
-
-    //     loop {
-    //         let op = self.peek().kind;
-
-    //         let (left_bp, right_bp) = 
-    //             match self.infix_binding_power(op) {
-    //                 Some(bp) => bp,
-    //                 None => break,
-    //             };
-
-    //         if left_bp < min_bp {
-    //             break;
-    //         }
-
-    //         self.advance();
-
-    //         let rhs = self.parse_expr_bp(right_bp);
-
-    //         lhs = Expr::Binary(BinaryExpr {
-    //             left: Box::new(lhs),
-    //             op: BinaryOp(op),
-    //             right: Box::new(rhs),
-    //         });
-
-    //         return lhs;
-    //     }
-    // }
+    fn infix_into(&self, op: &TokenKind) -> Option<(BinaryOp, u8, u8)> {
+        match op {
+            TokenKind::Gt       => Some((BinaryOp::Gt, 1, 2)),
+            TokenKind::Lt       => Some((BinaryOp::Lt, 1, 2)),
+            TokenKind::Ge       => Some((BinaryOp::Ge, 1, 2)),
+            TokenKind::Le       => Some((BinaryOp::Le, 1, 2)),
+            TokenKind::Plus     => Some((BinaryOp::Add, 10, 11)),
+            TokenKind::Minus    => Some((BinaryOp::Sub, 10, 11)),
+            TokenKind::Asterisk => Some((BinaryOp::Mul, 20, 21)),
+            TokenKind::Slash    => Some((BinaryOp::Div, 20, 21)),
+            TokenKind::Caret    => Some((BinaryOp::Pow, 31, 30)),
+            _ => None,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -149,9 +137,80 @@ mod tests {
             .collect()
     }
 
+    fn build_s_expr(expr: &Expr) -> String {
+        match expr {
+            Expr::Literal(Literal::Int(n)) => n.to_string(),
+            Expr::Literal(Literal::Bool(b)) => b.to_string(),
+            Expr::Literal(Literal::Real(x)) => x.to_string(),
+
+            Expr::Ident(name) => name.clone(),
+
+            Expr::Unary(unary) => {
+                format!(
+                    "({} {})",
+                    unary_op_to_str(&unary.op),
+                    build_s_expr(&unary.expr),
+                )
+            }
+
+            Expr::Binary(binary) => {
+                format!(
+                    "({} {} {})",
+                    binary_op_to_str(&binary.op),
+                    build_s_expr(&binary.left),
+                    build_s_expr(&binary.right),
+                )
+            }
+            _ => {
+                panic!("build_s_expression can only handle Literals, Identifiers, Unary Expressions, and Binary Expressions");
+            }
+        }
+    }
+
+    fn unary_op_to_str(op: &UnaryOp) -> &'static str {
+        match op {
+            UnaryOp::Neg    => "-",
+            UnaryOp::BitNot => "~",
+        }
+    }
+
+    fn binary_op_to_str(op: &BinaryOp) -> &'static str {
+        match op {
+            BinaryOp::Add => "+",
+            BinaryOp::Sub => "-",
+            BinaryOp::Mul => "*",
+            BinaryOp::Div => "/",
+            BinaryOp::Pow => "^",
+            BinaryOp::Gt  => ">",
+            BinaryOp::Lt  => "<",
+            BinaryOp::Ge  => ">=",
+            BinaryOp::Le  => "<=",
+        }
+    }
+
+    #[test]
+    fn test_build_s_expr() {
+        let start: Expr = Expr::Binary(BinaryExpr {
+            left: Box::new(Expr::Unary(UnaryExpr {
+                op: UnaryOp::Neg,
+                expr: Box::new(Expr::Literal(Literal::Int(5))),
+            })),
+            op: BinaryOp::Add,
+            right: Box::new(Expr::Binary(BinaryExpr {
+                left: Box::new(Expr::Literal(Literal::Int(2))),
+                op: BinaryOp::Mul,
+                right: Box::new(Expr::Ident("a".to_string())),
+            })),
+        });
+
+        let result: String = build_s_expr(&start);
+
+        assert_eq!(result, "(+ (- 5) (* 2 a))".to_string());
+    }
+
     #[test]
     fn test_literal_expr() {
-        let kinds: Vec<TokenKind> = vec![IntLiteral(3)];
+        let kinds: Vec<TokenKind> = vec![IntLiteral(3), Eof];
         let tokens: Vec<Token> = build_token_vec(kinds);
 
         let mut parser = Parser::new(tokens);
@@ -163,7 +222,7 @@ mod tests {
 
     #[test]
     fn test_ident_expr() {
-        let kinds: Vec<TokenKind> = vec![Ident("hey".to_string())];
+        let kinds: Vec<TokenKind> = vec![Ident("hey".to_string()), Eof];
         let tokens: Vec<Token> = build_token_vec(kinds);
 
         let mut parser = Parser::new(tokens);
@@ -171,5 +230,53 @@ mod tests {
         let result: Expr = parser.parse_prefix();
 
         assert_eq!(result, Expr::Ident("hey".to_string()));
+    }
+
+    #[test]
+    fn test_binary_expr() {
+        // -5 + 2 * a + b
+        let kinds: Vec<TokenKind> = vec![Minus, IntLiteral(5), Plus, 
+            IntLiteral(2), Asterisk, Ident("a".to_string()), Plus, 
+            Ident("b".to_string()), Eof];
+        let tokens: Vec<Token> = build_token_vec(kinds);
+
+        let mut parser = Parser::new(tokens);
+
+        let result: Expr = parser.parse_expr(0);
+
+        let result_str: String = build_s_expr(&result);
+
+        assert_eq!(result_str, "(+ (+ (- 5) (* 2 a)) b)".to_string()); 
+    }
+
+    #[test]
+    fn test_paren_expr() {
+        // (9 + 10) * 5
+        let kinds: Vec<TokenKind> = vec![LParen, IntLiteral(9), Plus, 
+        IntLiteral(10), RParen, Asterisk, IntLiteral(5), Eof];
+        let tokens: Vec<Token> = build_token_vec(kinds);
+
+        let mut parser = Parser::new(tokens);
+
+        let result: Expr = parser.parse_expr(0);
+
+        let result_str: String = build_s_expr(&result);
+
+        assert_eq!(result_str, "(* (+ 9 10) 5)".to_string()); 
+    }
+
+    #[test]
+    fn text_exp() {
+        //-3^(2+4)
+        let kinds: Vec<TokenKind> = vec![Minus, IntLiteral(3), Caret, LParen, IntLiteral(2), Plus, IntLiteral(4), RParen, Eof];
+        let tokens: Vec<Token> = build_token_vec(kinds);
+
+        let mut parser = Parser::new(tokens);
+
+        let result: Expr = parser.parse_expr(0);
+
+        let result_str: String = build_s_expr(&result);
+
+        assert_eq!(result_str, "(- (^ 3 (+ 2 4)))".to_string()); 
     }
 }

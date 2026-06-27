@@ -51,15 +51,14 @@ pub enum Expr {
 #[derive(PartialEq, Debug)]
 pub enum Literal {
     Bool(bool),
-    Impulse(bool),
     Int(i64),
     Real(f64),
 }
 
 #[derive(PartialEq, Debug)]
 pub struct UnaryExpr {
-    op: UnaryOp,
-    expr: Box<Expr>,
+    pub op: UnaryOp,
+    pub expr: Box<Expr>,
 }
 
 #[derive(PartialEq, Debug)]
@@ -70,9 +69,9 @@ pub enum UnaryOp {
 
 #[derive(PartialEq, Debug)]
 pub struct BinaryExpr {
-    left: Box<Expr>,
-    op: BinaryOp,
-    right: Box<Expr>,
+    pub left: Box<Expr>,
+    pub op: BinaryOp,
+    pub right: Box<Expr>,
 }
 
 #[derive(PartialEq, Debug)]

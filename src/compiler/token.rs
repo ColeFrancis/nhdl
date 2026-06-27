@@ -70,16 +70,19 @@ pub enum TokenKind {
     Ge, // >=
     Le, // <=
 
-    Arrow,    // ->
-    FatArrow, // =>
-    Equals,   // =
     Plus,     // +
     Minus,    // -
     Asterisk, // *
     Slash,    // /
     Caret,    // ^
-    BitNot,  // ~
+    
+    BitNot,   // ~
+
     Or,       // |
+    
+    Equals,   // =
+    Arrow,    // ->
+    FatArrow, // =>
 
     Unknown(char),
     InvalidNum(String),
