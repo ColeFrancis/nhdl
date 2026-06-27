@@ -267,8 +267,11 @@ mod tests {
 
     #[test]
     fn text_exp() {
-        //-3^(2+4)
-        let kinds: Vec<TokenKind> = vec![Minus, IntLiteral(3), Caret, LParen, IntLiteral(2), Plus, IntLiteral(4), RParen, Eof];
+        //-3^(-7)^(8-2-4/-1)
+        let kinds: Vec<TokenKind> = vec![Minus, IntLiteral(3), Caret, LParen, 
+            Minus, IntLiteral(7), RParen, Caret, LParen, IntLiteral(8), Minus,
+            IntLiteral(2), Minus, IntLiteral(4), Slash, Minus, IntLiteral(1), 
+            RParen, Eof];
         let tokens: Vec<Token> = build_token_vec(kinds);
 
         let mut parser = Parser::new(tokens);
@@ -277,6 +280,6 @@ mod tests {
 
         let result_str: String = build_s_expr(&result);
 
-        assert_eq!(result_str, "(- (^ 3 (+ 2 4)))".to_string()); 
+        assert_eq!(result_str, "(- (^ 3 (^ (- 7) (- (- 8 2) (/ 4 (- 1))))))""(- (^ 3 (+ 2 4)))".to_string()); 
     }
 }
