@@ -11,7 +11,7 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 06/25/2026
+//! Last Updated: 06/27/2026
 
 use super::token::{Token, TokenKind};
 
@@ -132,7 +132,7 @@ impl<'a> Lexer<'a> {
                 b'*' => return Some(Token::new(TokenKind::Asterisk, line, col)),
                 b'^' => return Some(Token::new(TokenKind::Caret, line, col)),
                 b'~' => return Some(Token::new(TokenKind::BitNot, line, col)),
-                b'|' => return Some(Token::new(TokenKind::Or, line, col)),
+                b'|' => return Some(Token::new(TokenKind::Pipe, line, col)),
 
                 // Unknown
                 _ => return Some(Token::new(TokenKind::Unknown(c as char), line, col)),
@@ -214,6 +214,7 @@ impl<'a> Lexer<'a> {
             "Mod"     => TokenKind::Mod,
             "true"    => TokenKind::BoolLiteral(true),
             "false"   => TokenKind::BoolLiteral(false),
+            "_"       => TokenKind::Underscore,
             _         => TokenKind::Ident(buf),
         }
     }

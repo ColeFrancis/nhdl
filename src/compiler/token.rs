@@ -9,7 +9,7 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 06/25/2026
+//! Last Updated: 06/27/2026
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Token {
@@ -78,7 +78,8 @@ pub enum TokenKind {
     
     BitNot,   // ~
 
-    Or,       // |
+    Pipe,       // |
+    Underscore, // _
     
     Equals,   // =
     Arrow,    // ->

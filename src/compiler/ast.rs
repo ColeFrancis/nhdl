@@ -8,7 +8,7 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 06/25/2026
+//! Last Updated: 06/27/2026
 
 #[derive(PartialEq, Debug)]
 pub struct Program {
@@ -43,7 +43,7 @@ pub enum Expr {
     Ident(Ident),
     Unary(UnaryExpr),
     Binary(BinaryExpr),
-    // Tuple(TupleExpr),
+    Tuple(TupleExpr),
     Match(MatchExpr),
     Sample(SampleExpr),
 }
@@ -95,21 +95,21 @@ pub enum CompOp {
     Ge,         // >=
 }
 
-// #[derive(PartialEq, Debug)]
-// pub struct TupleExpr {
-//     elements: Vec<Expr>,
-// }
+#[derive(PartialEq, Debug)]
+pub struct TupleExpr {
+    elements: Vec<Expr>,
+}
 
 #[derive(PartialEq, Debug)]
 pub struct MatchExpr {
-    scrutinee: Box<Expr>,
-    arms: Vec<MatchArm>,
+    pub scrutinee: Box<Expr>,
+    pub arms: Vec<MatchArm>,
 }
 
 #[derive(PartialEq, Debug)]
 pub struct MatchArm {
-    pattern: Vec<SimplePattern>,
-    expr: Expr,
+    pub pattern: Vec<SimplePattern>,
+    pub expr: Expr,
 }
 
 #[derive(PartialEq, Debug)]
@@ -123,8 +123,8 @@ pub enum SimplePattern {
 
 #[derive(PartialEq, Debug)]
 pub struct ComparisonPattern {
-    op: CompOp,
-    expr: Box<Expr>,
+    pub op: CompOp,
+    pub expr: Box<Expr>,
 }
 
 #[derive(PartialEq, Debug)]
