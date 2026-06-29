@@ -98,15 +98,12 @@ impl Parser {
             TokenKind::LParen => {
                 let first = self.parse_expr(0);
             
-                match self.peek().kind {
+                match self.next().kind {
                     TokenKind::RParen => {
-                        self.next(); // consume ')'
                         first
                     }
             
                     TokenKind::Comma => {
-                        self.next(); // consume ','
-            
                         let mut elements = vec![first];
                         elements.push(self.parse_expr(0));
                         
@@ -119,7 +116,7 @@ impl Parser {
                         Expr::Tuple(TupleExpr { elements })
                     }
             
-                    _ => panic!("Expected ',' or ')'"),
+                    _ => panic!("Expected ',' or ')'. TODO: elegant error handling"),
                 }
             }
 
