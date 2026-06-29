@@ -107,7 +107,7 @@ impl Parser {
                     TokenKind::Comma => {
                         self.next(); // consume ','
             
-                        let mut elements = vec![expr];
+                        let mut elements = vec![first];
                         elements.push(self.parse_expr(0));
                         
                         while self.peek().kind == TokenKind::Comma {
