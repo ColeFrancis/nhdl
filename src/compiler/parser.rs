@@ -55,15 +55,6 @@ impl Parser {
         }
     }
 
-    fn expect_literal(&mut self) -> Literal {
-        match self.next().kind {
-            TokenKind::BoolLiteral(n) => Literal::Bool(n),
-            TokenKind::IntLiteral(n) => Literal::Int(n),
-            TokenKind::RealLiteral(n) => Literal::Real(n),
-            other => panic!("Expected literal, found {:?}", other),
-        }
-    }
-
     // fn parse_program(&mut self) -> Program {
     //     let mut items = Vec::new();
 
@@ -144,7 +135,10 @@ impl Parser {
             TokenKind::Real        => Type::Real,
             TokenKind::Mod         => {
                 self.expect(TokenKind::LParen);
-                let literal = self.expect_literal();
+                let n = match self.next().kind {
+                    TokenKind::IntLiteral(n) => n,
+                    other => panic!("Expected integer literal in mod(...), got {:?}", other),
+                };
                 self.expect(TokenKind::RParen);
                 Type::Mod(literal)
             }
