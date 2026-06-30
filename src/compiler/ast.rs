@@ -8,7 +8,7 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 06/27/2026
+//! Last Updated: 06/29/2026
 
 #[derive(PartialEq, Debug)]
 pub struct Program {
@@ -17,8 +17,9 @@ pub struct Program {
 
 #[derive(PartialEq, Debug)]
 pub enum Item {
-    Ent(EntDecl),
-    Rel(RelDecl),
+    Let(LetStatement),
+    Ent(EntType),
+    Rel(RelType),
     Net(NetDecl),
 }
 
@@ -31,9 +32,10 @@ type Ident = String;
 #[derive(PartialEq, Debug)]
 pub enum Type {
     Bool,
+    Impulse,
     Int,
     Real,
-    Mod(i64),
+    Mod(Literal),
     CustomType(Ident),
 }
 
@@ -45,7 +47,7 @@ pub enum Expr {
     Binary(BinaryExpr),
     Tuple(Vec<Expr>),
     Match(MatchExpr),
-    Sample(SampleExpr),
+    Sample(Vec<SampleArm>),
 }
 
 #[derive(PartialEq, Debug)]
@@ -123,20 +125,21 @@ pub struct ComparisonPattern {
 }
 
 #[derive(PartialEq, Debug)]
-pub struct SampleExpr {
-    arms: Vec<SampleArm>,
+pub struct SampleArm {
+    pub prob: Prob,
+    pub expr: Expr,
 }
 
 #[derive(PartialEq, Debug)]
-pub struct SampleArm {
-    prob: Expr,
-    expr: Expr,
+pub enum Prob {
+    Default,
+    Expr(Expr),
 }
 
 #[derive(PartialEq, Debug)]
 pub struct Param {
-    name: Ident,
-    param_type: Type,
+    pub name: Ident,
+    pub param_type: Type,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -144,9 +147,9 @@ pub struct Param {
 ////////////////////////////////////////////////////////////////////////////////
 
 #[derive(PartialEq, Debug)]
-pub struct EntDecl {
-    name: Ident,
-    expr: EntExpr,
+pub struct EntType {
+    pub name: Ident,
+    pub expr: EntExpr,
 }
 
 #[derive(PartialEq, Debug)]
@@ -160,11 +163,11 @@ pub enum EntExpr {
 ////////////////////////////////////////////////////////////////////////////////
 
 #[derive(PartialEq, Debug)]
-pub struct RelDecl {
-    name: Ident,
-    params: Vec<Param>,
-    return_type: Type,
-    body: RelBody,
+pub struct RelType {
+    pub name: Ident,
+    pub params: Vec<Param>,
+    pub return_type: Type,
+    pub body: RelBody,
 }
 
 #[derive(PartialEq, Debug)]
@@ -175,14 +178,14 @@ pub enum RelBody {
 
 #[derive(PartialEq, Debug)]
 pub struct BlockExpr {
-    statements: Vec<LetStatement>,
-    expr: Expr,
+    pub statements: Vec<LetStatement>,
+    pub expr: Expr,
 }
 
 #[derive(PartialEq, Debug)]
 pub struct LetStatement {
-    name: Ident,
-    expr: Expr,
+    pub name: Ident,
+    pub expr: Expr,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -191,8 +194,8 @@ pub struct LetStatement {
 
 #[derive(PartialEq, Debug)]
 pub struct NetDecl {
-    name: Ident,
-    items: Vec<NetItem>,
+    pub name: Ident,
+    pub items: Vec<NetItem>,
 }
 
 #[derive(PartialEq, Debug)]
@@ -205,13 +208,13 @@ pub enum NetItem {
 
 #[derive(PartialEq, Debug)]
 pub struct NetInit {
-    param: Param,
-    val: Expr,
+    pub param: Param,
+    pub val: Expr,
 }
 
 #[derive(PartialEq, Debug)]
 pub struct RelInst {
-    asignee: Ident,
-    rel: Ident,
-    args: Vec<Expr>, 
+    pub asignee: Ident,
+    pub rel: Ident,
+    pub args: Vec<Expr>, 
 }

@@ -11,7 +11,7 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 06/27/2026
+//! Last Updated: 06/29/2026
 
 use super::token::{Token, TokenKind};
 
@@ -198,8 +198,8 @@ impl<'a> Lexer<'a> {
         }
 
         match buf.as_str() {
-            "ent"     => TokenKind::Ent,
-            "rel"     => TokenKind::Rel,
+            "ent_t"   => TokenKind::Ent_t,
+            "rel_t"   => TokenKind::Rel_t,
             "net"     => TokenKind::Net,
             "match"   => TokenKind::Match,
             "sample"  => TokenKind::Sample,
@@ -321,11 +321,11 @@ mod test {
 
     #[test]
     fn test_ent() {
-        let lexer = Lexer::new("ent COIN = {H,T}; // This is an entity\n");
+        let lexer = Lexer::new("ent_t COIN = {H,T}; // This is an entity\n");
 
         let tokens: Vec<Token> = lexer.collect();
 
-        assert_eq!(kinds(&tokens), vec![Ent, Ident("COIN".to_string())
+        assert_eq!(kinds(&tokens), vec![Ent_t, Ident("COIN".to_string())
             , Equals, LBrace, Ident("H".to_string()), Comma
             , Ident("T".to_string()), RBrace, Semicolon, Eof]);
     } 
@@ -362,11 +362,11 @@ mod test {
 
     #[test]
     fn test_rel() {
-        let lexer = Lexer::new("rel A : (a:Real) -> Real = (a / 2);");
+        let lexer = Lexer::new("rel_t A : (a:Real) -> Real = (a / 2);");
 
         let tokens: Vec<Token> = lexer.collect();
 
-        assert_eq!(kinds(&tokens), vec![Rel, Ident("A".to_string()), Colon, LParen
+        assert_eq!(kinds(&tokens), vec![Rel_t, Ident("A".to_string()), Colon, LParen
         , Ident("a".to_string()), Colon, Real, RParen, Arrow, Real
         , Equals, LParen, Ident("a".to_string()), Slash, IntLiteral(2)
         , RParen, Semicolon, Eof]);

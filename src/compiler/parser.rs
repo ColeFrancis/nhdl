@@ -8,7 +8,7 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 06/27/2026
+//! Last Updated: 06/29/2026
 
 use super::token::{Token, TokenKind};
 use super::ast::*;
@@ -47,6 +47,121 @@ impl Parser {
             panic!("expected {:?}, got {:?}\nTODO: elegant error handling", expected , token.kind);
         }
     }
+
+    fn expect_ident(&mut self) -> String {
+        match self.next().kind {
+            TokenKind::Ident(name) => name,
+            other => panic!("Expected identifier, found {:?}", other),
+        }
+    }
+
+    fn expect_literal(&mut self) -> Literal {
+        match self.next().kind {
+            TokenKind::BoolLiteral(n) => Literal::Bool(n),
+            TokenKind::IntLiteral(n) => Literal::Int(n),
+            TokenKind::RealLiteral(n) => Literal::Real(n),
+            other => panic!("Expected literal, found {:?}", other),
+        }
+    }
+
+    // fn parse_program(&mut self) -> Program {
+    //     let mut items = Vec::new();
+
+    //     loop {
+    //         let item = match self.next().kind {
+    //             TokenKind::Let   => self.parse_let_stmt();
+    //             TokenKind::Ent_t => self.parse_ent_t();
+    //             TokenKind::Rel_t => self.parse_rel_t();
+    //             TokenKind::Net   => self.parse_net();
+    //             other => panic!("Unexpected prefix token: {:?}", other),
+    //         }
+
+    //         items.push(item);
+    //     }
+
+    //     Program {items}
+    // }
+
+    // Let token already consumed
+    fn parse_let_stmt(&mut self) -> Item {
+        let name = self.expect_ident();
+
+        self.expect(TokenKind::Equals);
+
+        let expr = self.parse_expr(0);
+
+        self.expect(TokenKind::Semicolon);
+
+        Item::Let(LetStatement {
+            name,
+            expr,
+        })
+    }
+
+    // Ent_t token already consumed
+    fn parse_ent_t(&mut self) -> Item {
+        let name = self.expect_ident();
+
+        self.expect(TokenKind::Equals);
+
+        let expr = self.parse_ent_expr();
+
+        self.expect(TokenKind::Semicolon);
+
+        Item::Ent(EntType {
+            name,
+            expr
+        })
+    }
+
+    fn parse_ent_expr(&mut self) -> EntExpr {
+        match &self.peek().kind {
+            TokenKind::LBrace => self.parse_set_ent(),
+            _ => EntExpr::Type(self.parse_type()),
+        }
+    }
+
+    fn parse_set_ent(&mut self) -> EntExpr {
+        self.expect(TokenKind::LBrace);
+
+        let mut members = vec![self.expect_ident()];
+
+        while self.peek().kind == TokenKind::Comma {
+            self.next();
+            members.push(self.expect_ident());
+        }
+
+        self.expect(TokenKind::RBrace);
+
+        EntExpr::SetEnt(members)
+    }
+
+    fn parse_type(&mut self) -> Type {
+        match self.next().kind {
+            TokenKind::Bool        => Type::Bool,
+            TokenKind::Impulse     => Type::Impulse,
+            TokenKind::Int         => Type::Int,
+            TokenKind::Real        => Type::Real,
+            TokenKind::Mod         => {
+                self.expect(TokenKind::LParen);
+                let literal = self.expect_literal();
+                self.expect(TokenKind::RParen);
+                Type::Mod(literal)
+            }
+            TokenKind::Ident(name) => Type::CustomType(name),
+            other => panic!("Unexpected prefix token: {:?}", other),
+        }
+    }
+
+    // Rel_t token already consumed
+    // fn parse_rel_t(&mut self) -> Item {
+
+    // }
+
+    // Net token already consumed
+    // fn parse_net(&mut self) -> Item {
+
+    // }
 
     // Pratt Parser for expressions
     //     If calling to parse expr, use min_bp = 0
@@ -120,13 +235,10 @@ impl Parser {
                 }
             }
 
-            TokenKind::Match => {
-                self.parse_match()
-            }
-            // TokenKind::Sample => {
+            TokenKind::Match => self.parse_match(),
+            TokenKind::Sample => self.parse_sample(),
 
-            // }
-            _ => panic!("TODO: Elegent Error Handling"),
+            other => panic!("Unexpected prefix token: {:?}", other),
         }
     }
 
@@ -145,6 +257,7 @@ impl Parser {
         }
     }
 
+    // Match token already consumed
     fn parse_match(&mut self) -> Expr {
         let scrutinee = self.parse_expr(0);
 
@@ -240,6 +353,46 @@ impl Parser {
             expr: Box::new(expr),
         })
     }
+
+    // Sample token already consumed
+    fn parse_sample(&mut self) -> Expr {
+        self.expect(TokenKind::LBrace);
+
+        let mut arms = Vec::new();
+
+        while self.peek().kind != TokenKind::RBrace {
+            arms.push(self.parse_sample_arm());
+
+            if self.peek().kind == TokenKind::Comma {
+                self.next();
+            } else {
+                break;
+            }
+        }
+
+        self.expect(TokenKind::RBrace);
+
+        Expr::Sample(arms)
+    }
+
+    fn parse_sample_arm(&mut self) -> SampleArm {
+        let prob = match &self.peek().kind {
+            TokenKind::Underscore => {
+                self.next();
+                Prob::Default
+            },
+            _ => Prob::Expr(self.parse_expr(0)),
+        };
+
+        self.expect(TokenKind::FatArrow);
+
+        let expr = self.parse_expr(0);
+
+        SampleArm {
+            prob,
+            expr,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -302,8 +455,15 @@ mod tests {
                 format!("(match {} {})", build_s_expr(&match_expr.scrutinee), arms)
             }
 
-            _ => {
-                panic!("build_s_expression can only handle Literals, Identifiers, Unary Expressions, and Binary Expressions");
+            // (sample (arm 0.5 1) (arm _ 0))
+            Expr::Sample(arms) => {
+                let arms = arms
+                    .iter()
+                    .map(build_sample_arm)
+                    .collect::<Vec<_>>()
+                    .join(" ");
+
+                format!("(sample {})", arms)
             }
         }
     }
@@ -356,6 +516,19 @@ mod tests {
                 )
             }
         }
+    }
+
+    fn build_sample_arm(arm: &SampleArm) -> String {
+        let prob = match &arm.prob {
+            Prob::Default => "_".to_string(),
+            Prob::Expr(expr) =>  build_s_expr(expr),
+        };
+
+        format!(
+            "(arm {} {})",
+            prob,
+            build_s_expr(&arm.expr),
+        )
     }
 
     fn unary_op_to_str(op: &UnaryOp) -> &'static str {
@@ -560,5 +733,108 @@ mod tests {
         let result_str: String = build_s_expr(&result);
 
         assert_eq!(result_str, "(match (tuple a b) (arm (or (tuple 1 0) (tuple 0 1) (tuple 1 1)) 1) (arm _ 0))".to_string());
+    }
+
+    #[test]
+    fn test_sample() {
+        // sample {
+        //     0.5 => 1,
+        //     _ => 0,
+        // }
+        let kinds: Vec<TokenKind> = vec![Sample, LBrace,
+            RealLiteral(0.5), FatArrow, IntLiteral(1), Comma,
+            Underscore, FatArrow, IntLiteral(0), Comma,
+            RBrace, Eof];
+        let tokens: Vec<Token> = build_token_vec(kinds);
+
+        let mut parser = Parser::new(tokens);
+
+        let result: Expr = parser.parse_expr(0);
+
+        let result_str: String = build_s_expr(&result);
+
+        assert_eq!(result_str, "(sample (arm 0.5 1) (arm _ 0))".to_string());
+
+        // match coin {
+        //     H => sample {
+        //         0.1 => H,
+        //         _ => T
+        //     },
+        //     T => sample {
+        //         0.8 => H,
+        //         _ => T
+        //     },
+        // }
+        let kinds: Vec<TokenKind> = vec![Match, Ident("coin".to_string()), LBrace,
+            Ident("H".to_string()), FatArrow, Sample, LBrace,
+                RealLiteral(0.1), FatArrow, Ident("H".to_string()), Comma,
+                Underscore, FatArrow, Ident("T".to_string()),
+            RBrace, Comma,
+            Ident("T".to_string()), FatArrow, Sample, LBrace,
+                RealLiteral(0.8), FatArrow, Ident("H".to_string()), Comma,
+                Underscore, FatArrow, Ident("T".to_string()),
+            RBrace, Comma,
+            RBrace, Eof];
+        let tokens: Vec<Token> = build_token_vec(kinds);
+
+        let mut parser = Parser::new(tokens);
+
+        let result: Expr = parser.parse_expr(0);
+
+        let result_str: String = build_s_expr(&result);
+
+        assert_eq!(result_str, "(match coin (arm H (sample (arm 0.1 H) (arm _ T))) (arm T (sample (arm 0.8 H) (arm _ T))))".to_string());
+    }
+
+    #[test]
+    fn test_let_statement() {
+        // let n = 1 + 2;
+        let kinds: Vec<TokenKind> = vec![Ident("n".to_string()), Equals, IntLiteral(1), Plus, IntLiteral(2), Semicolon, Eof];
+        let tokens: Vec<Token> = build_token_vec(kinds);
+
+        let mut parser = Parser::new(tokens);
+
+        let result: Item = parser.parse_let_stmt();
+
+        assert_eq!(result, Item::Let(LetStatement {
+            name: "n".to_string(),
+            expr: Expr::Binary(BinaryExpr {
+                left: Box::new(Expr::Literal(Literal::Int(1))),
+                op: BinaryOp::Add,
+                right: Box::new(Expr::Literal(Literal::Int(2))),
+            })
+        }));
+    }
+
+    #[test]
+    fn test_ent_t() {
+        // ent_t coin = {H, T};
+        let kinds: Vec<TokenKind> = vec![Ident("coin".to_string()), Equals, 
+            LBrace, Ident("H".to_string()), Comma, Ident("T".to_string()),
+            RBrace, Semicolon, Eof];
+
+        let tokens: Vec<Token> = build_token_vec(kinds);
+
+        let mut parser = Parser::new(tokens);
+
+        let result: Item = parser.parse_ent_t();
+        assert_eq!(result, Item::Ent(EntType {
+            name: "coin".to_string(),
+            expr: EntExpr::SetEnt(vec!["H".to_string(), "T".to_string()]),
+        }));
+        
+        // ent_t z4 = Mod(4);
+        let kinds: Vec<TokenKind> = vec![Ident("z4".to_string()), Equals, 
+            Mod, LParen, IntLiteral(4), RParen, Semicolon, Eof];
+
+        let tokens: Vec<Token> = build_token_vec(kinds);
+
+        let mut parser = Parser::new(tokens);
+
+        let result: Item = parser.parse_ent_t();
+        assert_eq!(result, Item::Ent(EntType {
+            name: "z4".to_string(),
+            expr: EntExpr::Type(Type::Mod(Literal::Int(4))),
+        }));
     }
 }
