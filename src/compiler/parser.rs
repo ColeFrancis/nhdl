@@ -909,7 +909,7 @@ mod tests {
 
     #[test]
     fn test_rel_t() {
-        // rel_t AND : (a:Bool, b:Bool) -> Bool = a*b
+        // rel_t AND : (a:Bool, b:Bool) -> Bool = a*b;
         let kinds: Vec<TokenKind> = vec![Ident("AND".to_string()), Colon, LParen, 
             Ident("a".to_string()), Colon, Bool, Comma,
             Ident("b".to_string()), Colon, Bool,
@@ -947,7 +947,7 @@ mod tests {
         //         p => true,
         //         _ => false,
         //     }
-        // }
+        // };
         let kinds: Vec<TokenKind> = vec![Ident("FLIP".to_string()), Colon, LParen, RParen, Arrow, Bool, Equals, LBrace,
             Let, Ident("p".to_string()), Equals, RealLiteral(0.5), Semicolon,
             Sample, LBrace, Ident("p".to_string()), FatArrow, BoolLiteral(true), Comma,
