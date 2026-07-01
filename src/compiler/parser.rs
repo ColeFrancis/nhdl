@@ -180,6 +180,8 @@ impl Parser {
             _ => RelBody::Expr(self.parse_expr(0)),
         };
 
+        self.expect(TokenKind::Semicolon);
+
         RelType {
             name,
             params,
@@ -913,7 +915,7 @@ mod tests {
             Ident("b".to_string()), Colon, Bool,
             RParen, Arrow, Bool, Equals, 
             Ident("a".to_string()), Asterisk, Ident("b".to_string()),
-            Eof
+            Semicolon, Eof
             ];
         let tokens: Vec<Token> = build_token_vec(kinds);
 
@@ -950,7 +952,7 @@ mod tests {
             Let, Ident("p".to_string()), Equals, RealLiteral(0.5), Semicolon,
             Sample, LBrace, Ident("p".to_string()), FatArrow, BoolLiteral(true), Comma,
             Underscore, FatArrow, BoolLiteral(false), Comma, RBrace,
-            RBrace, Eof];
+            RBrace, Semicolon, Eof];
         let tokens: Vec<Token> = build_token_vec(kinds);
 
         let mut parser = Parser::new(tokens);
