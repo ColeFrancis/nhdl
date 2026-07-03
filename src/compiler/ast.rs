@@ -12,7 +12,7 @@
 
 #[derive(PartialEq, Debug)]
 pub struct Program {
-    items: Vec<Item>,
+    pub items: Vec<Item>,
 }
 
 #[derive(PartialEq, Debug)]
@@ -20,7 +20,7 @@ pub enum Item {
     Let(LetStatement),
     Ent(EntType),
     Rel(RelType),
-    Net(NetType),
+    Net(Net),
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -193,7 +193,7 @@ pub struct LetStatement {
 ////////////////////////////////////////////////////////////////////////////////
 
 #[derive(PartialEq, Debug)]
-pub struct NetType {
+pub struct Net {
     pub name: Ident,
     pub items: Vec<NetItem>,
 }

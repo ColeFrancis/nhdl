@@ -237,14 +237,14 @@ net DLATCH {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 Leaky integrate and fire neuron example
 
-rel SYNAPSE: (spike_in: Inpulse, weight: Real, last_potential: Real) -> Real = {
+rel_t SYNAPSE: (spike_in: Inpulse, weight: Real, last_potential: Real) -> Real = {
     match (spike_in) {
         true => last_potential + weight,
         _ => last_potential,
     }
 }
 
-rel AXON: (curr_potential: Real) -> Impulse = {
+rel_t AXON: (curr_potential: Real) -> Impulse = {
     let threshold = 10;
 
     match (curr_potential) {
@@ -253,7 +253,7 @@ rel AXON: (curr_potential: Real) -> Impulse = {
     }
 }
 
-rel BODY: (spike: Impulse, curr_potential: Real) -> Real {
+rel_t BODY: (spike: Impulse, curr_potential: Real) -> Real {
     let refrac_potential = 0;
     let tau = 0.1;
 

@@ -9,7 +9,7 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 07/01/2026
+//! Last Updated: 07/03/2026
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Token {
@@ -35,7 +35,7 @@ pub enum TokenKind {
     // Keywords
     Ent_t,    // net_t
     Rel_t,    // rel_t
-    Net_t,    // net_t
+    NetToken,    // net
     Match,  // match
     Sample, // sample
 

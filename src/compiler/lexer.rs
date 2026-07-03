@@ -11,7 +11,7 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 07/01/2026
+//! Last Updated: 07/03/2026
 
 use super::token::{Token, TokenKind};
 
@@ -207,7 +207,7 @@ impl<'a> Lexer<'a> {
         match buf.as_str() {
             "ent_t"   => TokenKind::Ent_t,
             "rel_t"   => TokenKind::Rel_t,
-            "net_t"     => TokenKind::Net_t,
+            "net"     => TokenKind::NetToken,
             "match"   => TokenKind::Match,
             "sample"  => TokenKind::Sample,
             "input"   => TokenKind::Input,

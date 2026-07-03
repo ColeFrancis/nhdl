@@ -136,7 +136,7 @@ let_stmt = "let" IDENT "=" expr ";" ;
 net_decl = 
     "net" IDENT "{"
         module_item*
-    "}" ";" ;
+    "}" ;
 
 module_item = 
       input_decl
