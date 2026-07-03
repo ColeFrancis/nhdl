@@ -40,10 +40,6 @@ impl Parser {
         token
     }
 
-    fn at_end(&self) -> bool {
-        self.peek().kind == TokenKind::Eof
-    }
-
     fn expect(&mut self, expected: TokenKind) {
         let token = self.next();
 
