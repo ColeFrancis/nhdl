@@ -8,7 +8,7 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 07/01/2026
+//! Last Updated: 07/02/2026
 
 #[derive(PartialEq, Debug)]
 pub struct Program {
@@ -202,13 +202,13 @@ pub struct NetType {
 pub enum NetItem {
     Input(Param),
     Output(Param),
-    Init(NetInit),
+    Init(EntInit),
     RelInst(RelInst),
     NetInst(NetInst),
 }
 
 #[derive(PartialEq, Debug)]
-pub struct NetInit {
+pub struct EntInit {
     pub param: Param,
     pub val: Expr,
 }

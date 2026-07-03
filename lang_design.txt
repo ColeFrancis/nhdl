@@ -150,12 +150,12 @@ net HALF_ADD {
     output sum : Bool;
     output carry : Bool;
 
-    sum = XOR(a,b);
-    carry = AND(a, b);
+    sum := XOR(a,b);
+    carry := AND(a, b);
 };
 
 // Full adder
-net FULL_ADD {
+net ADD {
     input a: Bool;
     input b: Bool;
     input cin: Bool;
@@ -166,21 +166,18 @@ net FULL_ADD {
     HALF_ADD {
         a := a,
         b := b,
-        sum := h1.sum,
-        carry := h1.carry,
+        sum := h1_sum,
+        cin := h1_carry,
     };
 
     HALF_ADD {
-        a := h1.sum,
+        a := h1_sum,
         b := cin,
-        sum := h2.sum,
-        cout := h2.carry,
+        sum := sum,
+        cout := h2_carry,
     };
 
-    c := OR(h1.carry, h2.carry);
-
-    sum := h2.sum;
-    cout := c;
+    cout := OR(h1_carry, h2_carry);
 }
 
 // Showcases initializing entity values

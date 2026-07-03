@@ -8,7 +8,7 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 07/01/2026
+//! Last Updated: 07/02/2026
 
 use super::token::{Token, TokenKind};
 use super::ast::*;
@@ -59,25 +59,23 @@ impl Parser {
         }
     }
 
-    // fn parse_program(&mut self) -> Program {
-    //     let mut items = Vec::new();
+    fn parse(&mut self) -> Program {
+        let mut items = Vec::new();
 
-    //     while self.peek().kind != TokenKind::Eof {
-    //     }
-    //     loop {
-    //         let item = match self.next().kind {
-    //             TokenKind::Let   => Item::Let(self.parse_let_stmt()),
-    //             TokenKind::Ent_t => Item::Ent(self.parse_ent_t()),
-    //             TokenKind::Rel_t => Item::Rel(self.parse_rel_t()),
-    //             TokenKind::Net_t => Item::Net(self.parse_net()),
-    //             other => panic!("Unexpected prefix token: {:?}", other),
-    //         }
+        while self.peek().kind != TokenKind::Eof {
+            let item = match self.next().kind {
+                TokenKind::Let   => Item::Let(self.parse_let_stmt()),
+                TokenKind::Ent_t => Item::Ent(self.parse_ent_t()),
+                TokenKind::Rel_t => Item::Rel(self.parse_rel_t()),
+                TokenKind::Net_t => Item::Net(self.parse_net_t()),
+                other => panic!("Unexpected prefix token: {:?}", other),
+            }
 
-    //         items.push(item);
-    //     }
+            items.push(item);
+        }
 
-    //     Program {items}
-    // }
+        Program { items }
+    }
 
     // Let token already consumed
     fn parse_let_stmt(&mut self) -> LetStatement {
@@ -232,7 +230,7 @@ impl Parser {
     }
 
     // Net token already consumed
-    fn parse_net(&mut self) -> NetDecl {
+    fn parse_net_t(&mut self) -> NetType {
         let name = self.expect_ident();
 
         self.expect(TokenKind::LBrace);
@@ -245,8 +243,6 @@ impl Parser {
 
         self.expect(TokenKind::RBrace);
 
-        self.expect(TokenKind::Semicolon);
-
         NetType {
             name,
             items,
@@ -254,30 +250,32 @@ impl Parser {
     }
 
     fn parse_net_item(&mut self) -> NetItem {
-        match self.peek().kind {
+        match &self.peek().kind {
             TokenKind::Input => {
                 self.next();
-                NetItem::Input(self.parse_param())
+                let input = NetItem::Input(self.parse_param());
+                self.expect(TokenKind::Semicolon);
+                input
             },
             TokenKind::Output => {
                 self.next();
-                NetItem::Output(self.parse_param())
+                let output = NetItem::Output(self.parse_param());
+                self.expect(TokenKind::Semicolon);
+                output
             },
             TokenKind::Init => {
                 self.next();
-                NetItem::Init(self.parse_net_init())
+                NetItem::Init(self.parse_ent_init())
             },
-            Ident => {
-                match self.peek_n(1) => {
+            Ident => match self.peek_n(1).kind {
                     TokenKind::Connect => NetItem::RelInst(self.parse_rel_inst()),
                     _ => NetItem::NetInst(self.parse_net_inst()),
-                }
-            }
+                },
             other => panic!("Unexpected token in net: {:?}", other), 
         }
     }
 
-    fn parse_net_init(&mut self) -> NetInit {
+    fn parse_ent_init(&mut self) -> EntInit {
         let param = self.parse_param();
 
         self.expect(TokenKind::Equals);
@@ -286,7 +284,7 @@ impl Parser {
 
         self.expect(TokenKind::Semicolon);
 
-        NetInit {
+        EntInit {
             param,
             val,
         }
@@ -301,7 +299,7 @@ impl Parser {
 
         self.expect(TokenKind::LParen);
 
-        let args = Vec::new()
+        let mut args = Vec::new();
 
         while self.peek().kind != TokenKind::RParen {
             args.push(self.expect_ident());
@@ -325,7 +323,43 @@ impl Parser {
     }
 
     fn parse_net_inst(&mut self) -> NetInst {
-        
+        let net = self.expect_ident();
+
+        self.expect(TokenKind::LBrace);
+
+        let mut connections = Vec::new();
+
+        while self.peek().kind != TokenKind::RBrace {
+            connections.push(self.parse_connection());
+
+            if self.peek().kind == TokenKind::Comma {
+                self.next();
+            } else {
+                break;
+            }
+        }
+
+        self.expect(TokenKind::RBrace);
+
+        self.expect(TokenKind::Semicolon);
+
+        NetInst {
+            net,
+            connections,
+        }
+    }
+
+    fn parse_connection(&mut self) -> Connection {
+        let port = self.expect_ident();
+
+        self.expect(TokenKind::Connect);
+
+        let net = self.expect_ident();
+
+        Connection {
+            port,
+            net,
+        }
     }
 
     // Pratt Parser for expressions
@@ -1077,6 +1111,148 @@ mod tests {
                     },
                 ]),
             }),
+        });
+    }
+
+    #[test]
+    fn test_net_t() {
+        // net ADD {
+        //     input a: Bool;
+        //     input b: Bool;
+
+        //     output sum: Bool;
+        //     output cout: Bool;
+
+        //     input cin: Bool = false;
+
+        //     HALF_ADD {
+        //         a := a,
+        //         b := b,
+        //         sum := h1_sum,
+        //         cout := h1_carry,
+        //     };
+
+        //     HALF_ADD {
+        //         a := h1_sum,
+        //         b := cin,
+        //         sum := sum,
+        //         cout := h2_carry,
+        //     };
+
+        //     cout := OR(h1_carry, h2_carry);
+
+        // }
+        let kinds: Vec<TokenKind> = vec![
+            Ident("ADD".to_string()), LBrace,
+                Input, Ident("a".to_string()), Colon, Bool, Semicolon,
+                Input, Ident("b".to_string()), Colon, Bool, Semicolon,
+                Output, Ident("sum".to_string()), Colon, Bool, Semicolon,
+                Output, Ident("cout".to_string()), Colon, Bool, Semicolon,
+                Init, Ident("cin".to_string()), Colon, Bool, Equals, BoolLiteral(false), Semicolon,
+                
+                Ident("HALF_ADD".to_string()), LBrace,
+                    Ident("a".to_string()), Connect, Ident("a".to_string()), Comma,
+                    Ident("b".to_string()), Connect, Ident("b".to_string()), Comma,
+                    Ident("sum".to_string()), Connect, Ident("h1_sum".to_string()), Comma,
+                    Ident("cout".to_string()), Connect, Ident("h1_carry".to_string()), Comma,
+                RBrace, Semicolon,
+
+                Ident("HALF_ADD".to_string()), LBrace,
+                    Ident("a".to_string()), Connect, Ident("h1_sum".to_string()), Comma,
+                    Ident("b".to_string()), Connect, Ident("cin".to_string()), Comma,
+                    Ident("sum".to_string()), Connect, Ident("sum".to_string()), Comma,
+                    Ident("cout".to_string()), Connect, Ident("h2_carry".to_string()), Comma,
+                RBrace, Semicolon,
+
+                Ident("cout".to_string()), Connect, Ident("OR".to_string()), LParen,
+                    Ident("h1_carry".to_string()), Comma, Ident("h2_carry".to_string()),
+                RParen, Semicolon,
+            RBrace, Eof
+            ];
+
+        let tokens: Vec<Token> = build_token_vec(kinds);
+
+        let mut parser = Parser::new(tokens);
+
+        let result = parser.parse_net_t();
+
+        assert_eq!(result, NetType {
+            name: "ADD".to_string(),
+            items: vec![
+                NetItem::Input(Param {
+                    name: "a".to_string(),
+                    param_type: Type::Bool,
+                }),
+                NetItem::Input(Param {
+                    name: "b".to_string(),
+                    param_type: Type::Bool,
+                }),
+                NetItem::Output(Param {
+                    name: "sum".to_string(),
+                    param_type: Type::Bool,
+                }),
+                NetItem::Output(Param {
+                    name: "cout".to_string(),
+                    param_type: Type::Bool,
+                }),
+                NetItem::Init(EntInit {
+                    param: Param {
+                        name: "cin".to_string(),
+                        param_type: Type::Bool,
+                    },
+                    val: Expr::Literal(Literal::Bool(false)),
+                }),
+                NetItem::NetInst(NetInst {
+                    net: "HALF_ADD".to_string(),
+                    connections: vec![
+                        Connection {
+                            port: "a".to_string(),
+                            net: "a".to_string(),
+                        },
+                        Connection {
+                            port: "b".to_string(),
+                            net: "b".to_string(),
+                        },
+                        Connection {
+                            port: "sum".to_string(),
+                            net: "h1_sum".to_string(),
+                        },
+                        Connection {
+                            port: "cout".to_string(),
+                            net: "h1_carry".to_string(),
+                        },
+                    ],
+                }),
+                NetItem::NetInst(NetInst {
+                    net: "HALF_ADD".to_string(),
+                    connections: vec![
+                        Connection {
+                            port: "a".to_string(),
+                            net: "h1_sum".to_string(),
+                        },
+                        Connection {
+                            port: "b".to_string(),
+                            net: "cin".to_string(),
+                        },
+                        Connection {
+                            port: "sum".to_string(),
+                            net: "sum".to_string(),
+                        },
+                        Connection {
+                            port: "cout".to_string(),
+                            net: "h2_carry".to_string(),
+                        },
+                    ],
+                }),
+                NetItem::RelInst(RelInst {
+                    asignee: "cout".to_string(),
+                    rel: "OR".to_string(),
+                    args: vec![
+                        "h1_carry".to_string(),
+                        "h2_carry".to_string(),
+                    ],
+                })
+            ],
         });
     }
 }
