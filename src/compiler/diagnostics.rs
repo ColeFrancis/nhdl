@@ -36,7 +36,13 @@ impl Diagnostics {
 
 #[derive(Debug)]
 pub enum CompilerError {
+    // Lexer
     UnknownToken(String),
-
     InvalidNum(String),
+    // Unterminated block comment
+
+    // Parser
+    // Missing token
+    // Unexpected token
+    // Missing expression/statement
 }
