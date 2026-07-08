@@ -170,6 +170,54 @@ impl<'a> Parser<'a> {
             other => panic!("Unexpected prefix token: {:?}", other),
         }
     }
+    
+    pub(super) fn parse_type_new(&mut self) -> Option<Type> {
+        let token = self.next();
+        
+        match token.kind {
+            TokenKind::Bool        => Some(Type::Bool),
+            TokenKind::Impulse     => Some(Type::Impulse),
+            TokenKind::Int         => Some(Type::Int),
+            TokenKind::Real        => Some(Type::Real),
+            TokenKind::Mod         => {
+                self.expect(TokenKind::LParen)?;
+                let token = self.next();
+                let n = match token.kind {
+                    TokenKind::IntLiteral(n) => n,
+                    other => {
+                        self.diagnostics.error(CompilerError::UnexpectedToken {
+                            expected: vec![Expected::Literal],
+                            found: other,
+                            span: token.span,
+                        });
+                        
+                        return None;
+                    }
+                };
+                self.expect(TokenKind::RParen)?;
+                
+                Some(Type::Mod(n))
+            }
+            TokenKind::Ident(name) => Some(Type::CustomType(name)),
+            
+            other => {
+                self.diagnostics.error(CompilerError::UnexpectedToken {
+                    expected: vec![
+                        Expected::Token(TokenKind::Bool), 
+                        Expected::Token(TokenKind::Impulse), 
+                        Expected::Token(TokenKind::Int), 
+                        Expected::Token(TokenKind::Real),
+                        Expected::Token(TokenKind::Mod),
+                        Expected::Ident,
+                    ],
+                    found: other,
+                    span: token.span,
+                });
+                    
+                None
+            }
+        }
+    }
 
     pub(super) fn parse_param(&mut self) -> Option<Param> {
         let name = self.expect_ident()?;
