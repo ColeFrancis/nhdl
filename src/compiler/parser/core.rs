@@ -8,12 +8,12 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 07/06/2026
+//! Last Updated: 07/07/2026
 
 use super::Parser;
 use crate::compiler::token::{Token, TokenKind};
 use crate::compiler::ast::*;
-use crate::compiler::diagnostics::Diagnostics;
+use crate::compiler::diagnostics::{Diagnostics, CompilerError, Expected};
 
 
 impl<'a> Parser<'a> {
@@ -29,12 +29,28 @@ impl<'a> Parser<'a> {
         let mut items = Vec::new();
 
         while self.peek().kind != TokenKind::Eof {
-            let item = match self.next().kind {
-                TokenKind::Let   => Item::Let(self.parse_let_stmt()),
-                TokenKind::Ent_t => Item::Ent(self.parse_ent_t()),
-                TokenKind::Rel_t => Item::Rel(self.parse_rel_t()),
+            let token = self.next();
+
+            let item = match token.kind {
+                TokenKind::Let      => Item::Let(self.parse_let_stmt()),
+                TokenKind::Ent_t    => Item::Ent(self.parse_ent_t()),
+                TokenKind::Rel_t    => Item::Rel(self.parse_rel_t()),
                 TokenKind::NetToken => Item::Net(self.parse_net()),
-                other => panic!("Unexpected prefix token: {:?}", other),
+
+                other => {
+                    self.diagnostics.error(CompilerError::UnexpectedToken {
+                        expected: vec![
+                            Expected::Token(TokenKind::Let), 
+                            Expected::Token(TokenKind::Ent_t), 
+                            Expected::Token(TokenKind::Rel_t), 
+                            Expected::Token(TokenKind::NetToken)
+                        ],
+                        found: other,
+                        span: token.span,
+                    });
+
+                    Item::Error
+                },
             };
 
             items.push(item);
@@ -198,6 +214,7 @@ mod tests {
                 }),
             ],
         });
+        assert!(!diagnostics.has_errors());
     }
 
     // #[test]
@@ -240,6 +257,7 @@ mod tests {
                 }),
             ],
         });
+        assert!(!diagnostics.has_errors());
 
         // let lexer = Lexer::new("
         //     rel_t SYN: (in: Inpulse, weight: Real, last_pot: Real) -> Real = {

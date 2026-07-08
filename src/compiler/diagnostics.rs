@@ -8,7 +8,9 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 07/06/2026
+//! Last Updated: 07/07/2026
+
+use super::token::{Span, TokenKind};
 
 pub struct Diagnostics {
     errors: Vec<CompilerError>,
@@ -37,12 +39,30 @@ impl Diagnostics {
 #[derive(Debug)]
 pub enum CompilerError {
     // Lexer
-    UnknownToken(String),
-    InvalidNum(String),
+    UnknownToken {
+        lexeme: String,
+        span: Span,
+    },
+
+    InvalidNum {
+        lexeme: String,
+        span: Span,
+    },
     // Unterminated block comment
 
     // Parser
-    // Missing token
-    // Unexpected token
+    UnexpectedToken {
+        expected: Vec<Expected>,
+        found: TokenKind,
+        span: Span,
+    },
     // Missing expression/statement
+}
+
+#[derive(Debug)]
+pub enum Expected {
+    Token(TokenKind),
+    Expr,
+    Type,
+    Ident,
 }

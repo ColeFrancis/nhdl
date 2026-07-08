@@ -11,10 +11,10 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 07/06/2026
+//! Last Updated: 07/07/2026
 
-use super::token::{Token, TokenKind};
-use super::diagnostics::Diagnostics;
+use super::token::{Token, TokenKind, Span};
+use super::diagnostics::{Diagnostics, CompilerError};
 
 
 pub struct Lexer<'a> {
@@ -92,7 +92,7 @@ impl<'a> Lexer<'a> {
 
                 // Literals
                 b'0'..=b'9' => {
-                    let kind = self.handle_number(c);
+                    let kind = self.handle_number(c, line, col);
 
                     return Some(Token::new(kind, line, col));
                 }
@@ -155,7 +155,13 @@ impl<'a> Lexer<'a> {
                 b'|' => return Some(Token::new(TokenKind::Pipe, line, col)),
 
                 // Unknown
-                _ => return Some(Token::new(TokenKind::Unknown(c as char), line, col)),
+                _ => {
+                    self.diagnostics.error(CompilerError::UnknownToken {
+                        lexeme: (c as char).to_string(),
+                        span: Span {line, col},
+                    });
+                    return Some(Token::new(TokenKind::ErrorToken, line, col))
+                }
             }
         }
 
@@ -240,7 +246,7 @@ impl<'a> Lexer<'a> {
     }
 
     // Literals
-    fn handle_number(&mut self, first: u8) -> TokenKind {
+    fn handle_number(&mut self, first: u8, line: usize, col: usize) -> TokenKind {
         let mut buf = String::new();
         buf.push(first as char);
 
@@ -282,16 +288,32 @@ impl<'a> Lexer<'a> {
         }
 
         if !is_valid {
-            TokenKind::InvalidNum(buf)
+            self.diagnostics.error(CompilerError::InvalidNum {
+                lexeme: buf.clone(),
+                span: Span {line, col},
+            });
+            return TokenKind::ErrorToken;
         } else if is_float {
             match buf.parse::<f64>() {
                 Ok(n) => TokenKind::RealLiteral(n),
-                Err(_) => TokenKind::InvalidNum(buf),
+                Err(_) => {
+                    self.diagnostics.error(CompilerError::InvalidNum {
+                        lexeme: buf.clone(),
+                        span: Span {line, col},
+                    });
+                    return TokenKind::ErrorToken;
+                }
             }
         } else {
             match buf.parse::<i64>() {
                 Ok(n) => TokenKind::IntLiteral(n),
-                Err(_) => TokenKind::InvalidNum(buf),
+                Err(_) => {
+                    self.diagnostics.error(CompilerError::InvalidNum {
+                        lexeme: buf.clone(),
+                        span: Span {line, col},
+                    });
+                    return TokenKind::ErrorToken;
+                }
             }
         }
     }
@@ -344,6 +366,7 @@ mod test {
         assert_eq!(kinds(&tokens), vec![Ent_t, Ident("COIN".to_string())
             , Equals, LBrace, Ident("H".to_string()), Comma
             , Ident("T".to_string()), RBrace, Semicolon, Eof]);
+        assert!(!diagnostics.has_errors());
     } 
 
     #[test]
@@ -353,7 +376,8 @@ mod test {
 
         let tokens: Vec<Token> = lexer.tokenize();
 
-        assert_eq!(kinds(&tokens), vec![Unknown('@'), Eof]);
+        assert_eq!(kinds(&tokens), vec![ErrorToken, Eof]);
+        assert!(diagnostics.has_errors());
     }
 
     #[test]
@@ -363,9 +387,10 @@ mod test {
 
         let tokens: Vec<Token> = lexer.tokenize();
 
-        assert_eq!(kinds(&tokens), vec![InvalidNum("94f".to_string()), InvalidNum("9.9.9".to_string())
-            , InvalidNum("10000000000000000000".to_string()), IntLiteral(99)
+        assert_eq!(kinds(&tokens), vec![ErrorToken, ErrorToken
+            , ErrorToken, IntLiteral(99)
             , RealLiteral(9.8), IntLiteral(1000), Eof]);
+        assert!(diagnostics.has_errors());
     }
 
     #[test]

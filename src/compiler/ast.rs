@@ -8,7 +8,7 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 07/02/2026
+//! Last Updated: 07/07/2026
 
 #[derive(PartialEq, Debug)]
 pub struct Program {
@@ -21,6 +21,7 @@ pub enum Item {
     Ent(EntType),
     Rel(RelType),
     Net(Net),
+    Error,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -48,6 +49,7 @@ pub enum Expr {
     Tuple(Vec<Expr>),
     Match(MatchExpr),
     Sample(Vec<SampleArm>),
+    // Error,
 }
 
 #[derive(PartialEq, Debug)]

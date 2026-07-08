@@ -22,8 +22,8 @@ impl Token {
         Self {
             kind: kind,
             span: Span {
-                line: line,
-                col: col,
+                line,
+                col,
             }
         }
     }
@@ -87,9 +87,8 @@ pub enum TokenKind {
     FatArrow, // =>
     Connect,  // :=
     
+    ErrorToken,
 
-    Unknown(char),
-    InvalidNum(String),
     Eof,
 }
 
