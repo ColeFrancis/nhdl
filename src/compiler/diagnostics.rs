@@ -65,7 +65,6 @@ pub enum CompilerError {
 pub enum Expected {
     Token(TokenKind),
     Expr,
-    Type,
     Ident,
     Literal,
 }
