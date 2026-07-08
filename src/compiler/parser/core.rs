@@ -212,7 +212,7 @@ mod tests {
     }
 
     #[test]
-    fn test_let_statement() {
+    fn let_statement() {
         // let n = 1 + 2;
         let kinds: Vec<TokenKind> = vec![Ident("n".to_string()), Equals, IntLiteral(1), Plus, IntLiteral(2), Semicolon, Eof];
         let tokens: Vec<Token> = build_token_vec(kinds);
@@ -230,6 +230,34 @@ mod tests {
                 right: Box::new(Expr::Literal(Literal::Int(2))),
             })
         }));
+        assert!(!diagnostics.has_errors());
+    }
+
+    #[test] 
+    fn bad_let_statement() {
+        // let n = 1 + 2
+        let kinds: Vec<TokenKind> = vec![Ident("n".to_string()), Equals, IntLiteral(1), Plus, IntLiteral(2), Eof];
+        let tokens: Vec<Token> = build_token_vec(kinds);
+
+        let mut diagnostics = Diagnostics::new();
+        let mut parser = Parser::new(tokens, &mut diagnostics);
+
+        let result = parser.parse_let_stmt();
+
+        assert_eq!(result, None);
+        assert_eq!(diagnostics.num_errors(), 1); // unexpected token
+        
+        // let 9n = 1 + 2;
+        let mut diagnostics = Diagnostics::new();
+        let mut lexer = Lexer::new("let 9a = 1;", &mut diagnostics);
+        let tokens: Vec<Token> = lexer.tokenize();
+
+        let mut parser = Parser::new(tokens, &mut diagnostics);
+
+        let result = parser.parse_let_stmt();
+
+        assert_eq!(result, None);
+        assert_eq!(diagnostics.num_errors(), 2); // invalid num, unexpected token
     }
 
     #[test]
