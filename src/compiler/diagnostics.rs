@@ -67,4 +67,5 @@ pub enum Expected {
     Expr,
     Type,
     Ident,
+    Literal,
 }
