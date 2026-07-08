@@ -181,8 +181,14 @@ pub enum RelBody {
 
 #[derive(PartialEq, Debug)]
 pub struct BlockExpr {
-    pub statements: Vec<LetStatement>,
+    pub statements: Vec<Statement>,
     pub expr: Expr,
+}
+
+#[derive(PartialEq, Debug)]
+pub enum Statement {
+    Let(LetStatement,
+    Error,
 }
 
 #[derive(PartialEq, Debug)]
