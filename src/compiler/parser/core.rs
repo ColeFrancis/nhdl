@@ -247,9 +247,9 @@ mod tests {
         assert_eq!(result, None);
         assert_eq!(diagnostics.num_errors(), 1); // unexpected token
         
-        // let 9n = 1 + 2;
+        // let 9n = 1;
         let mut diagnostics = Diagnostics::new();
-        let mut lexer = Lexer::new("let 9a = 1;", &mut diagnostics);
+        let mut lexer = Lexer::new("9a = 1;", &mut diagnostics);
         let tokens: Vec<Token> = lexer.tokenize();
 
         let mut parser = Parser::new(tokens, &mut diagnostics);
