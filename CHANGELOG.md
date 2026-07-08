@@ -8,11 +8,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
-- wrote function to save a network with a custom file type
+- compiler (in progress)
 
 ### Changed
 
-- Distributed some directory structure and removed logic module
+- Changed project name from nhdl to Language of Interaction (LOI)
 
 ## [0.3.0] - 2026-06-4
 
