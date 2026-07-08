@@ -38,6 +38,7 @@ pub enum Type {
     Real,
     Mod(i64),
     CustomType(Ident),
+    // Error, // Maybe?
 }
 
 #[derive(PartialEq, Debug)]
@@ -207,6 +208,7 @@ pub enum NetItem {
     Init(EntInit),
     RelInst(RelInst),
     NetInst(NetInst),
+    // Error,
 }
 
 #[derive(PartialEq, Debug)]
