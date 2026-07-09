@@ -8,7 +8,7 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 07/07/2026
+//! Last Updated: 07/08/2026
 
 #[derive(PartialEq, Debug)]
 pub struct Program {
@@ -214,7 +214,7 @@ pub enum NetItem {
     Init(EntInit),
     RelInst(RelInst),
     NetInst(NetInst),
-    // Error,
+    Error,
 }
 
 #[derive(PartialEq, Debug)]

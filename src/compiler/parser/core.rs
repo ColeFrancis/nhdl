@@ -8,7 +8,7 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 07/07/2026
+//! Last Updated: 07/08/2026
 
 use super::Parser;
 use crate::compiler::token::{Token, TokenKind};
@@ -32,25 +32,25 @@ impl<'a> Parser<'a> {
             let token = self.next();
 
             let item = match token.kind {
-                TokenKind::Let => self
-                    .parse_let_stmt()
-                    .map_or(Item::Error, Item::Let),
+                TokenKind::Let => match self.parse_let_stmt() {
+                    Some(stmt) => Item::Let(stmt),
+                    None => Item::Error,
+                },
 
-                // TokenKind::Ent_t => self
-                //     .parse_ent_t()
-                //     .map_or(Item::Error, Item::Ent),
+                TokenKind::Ent_t => match self.parse_ent_t() {
+                    Some(ent) => Item::Ent(ent),
+                    None => Item::Error,
+                },
 
-                // TokenKind::Rel_t => self
-                //     .parse_rel_t()
-                //     .map_or(Item::Error, Item::Rel),
+                TokenKind::Rel_t => match self.parse_rel_t() {
+                    Some(rel) => Item::Rel(rel),
+                    None => Item::Error,
+                },
 
-                // TokenKind::NetToken => self
-                //     .parse_ent_t()
-                //     .map_or(Item::Error, Item::Net),
-                
-                TokenKind::Ent_t    => Item::Ent(self.parse_ent_t()),
-                TokenKind::Rel_t    => Item::Rel(self.parse_rel_t()),
-                TokenKind::NetToken => Item::Net(self.parse_net()),
+                TokenKind::NetToken => match self.parse_net() {
+                    Some(net) => Item::Net(net),
+                    None => Item::Error,
+                }
 
                 other => {
                     self.diagnostics.error(CompilerError::UnexpectedToken {
@@ -151,7 +151,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    pub(super) fn parse_type(&mut self) -> Type {
+    pub(super) fn parse_type_old(&mut self) -> Type {
         match self.next().kind {
             TokenKind::Bool        => Type::Bool,
             TokenKind::Impulse     => Type::Impulse,
@@ -171,7 +171,7 @@ impl<'a> Parser<'a> {
         }
     }
     
-    pub(super) fn parse_type_new(&mut self) -> Option<Type> {
+    pub(super) fn parse_type(&mut self) -> Option<Type> {
         let token = self.next();
         
         match token.kind {
@@ -224,7 +224,7 @@ impl<'a> Parser<'a> {
 
         self.expect(TokenKind::Colon)?;
 
-        let param_type = self.parse_type();
+        let param_type = self.parse_type()?;
 
         Some(Param {
             name,
@@ -237,7 +237,7 @@ impl<'a> Parser<'a> {
 
         self.expect(TokenKind::Colon);
 
-        let param_type = self.parse_type();
+        let param_type = self.parse_type_old();
 
         Param {
             name,

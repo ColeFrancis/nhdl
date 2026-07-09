@@ -8,7 +8,7 @@
 //!
 //! Author: Cole Francis
 //!
-//! Last Updated: 07/06/2026
+//! Last Updated: 07/08/2026
 
 use super::Parser;
 use crate::compiler::token::TokenKind;
@@ -16,17 +16,17 @@ use crate::compiler::ast::*;
 
 impl<'a> Parser<'a> {
     // Rel_t token already consumed
-    pub(super) fn parse_rel_t(&mut self) -> RelType {
-        let name = self.expect_ident_old();
+    pub(super) fn parse_rel_t(&mut self) -> Option<RelType> {
+        let name = self.expect_ident()?;
 
-        self.expect_old(TokenKind::Colon);
+        self.expect(TokenKind::Colon)?;
 
-        self.expect_old(TokenKind::LParen);
+        self.expect(TokenKind::LParen)?;
 
         let mut params = Vec::new();
 
         while self.peek().kind != TokenKind::RParen {
-            params.push(self.parse_param_old());
+            params.push(self.parse_param()?);
 
             if self.peek().kind == TokenKind::Comma {
                 self.next();
@@ -35,49 +35,53 @@ impl<'a> Parser<'a> {
             }
         }
 
-        self.expect_old(TokenKind::RParen);
+        self.expect(TokenKind::RParen)?;
 
-        self.expect_old(TokenKind::Arrow);
+        self.expect(TokenKind::Arrow)?;
 
-        let return_type = self.parse_type();
+        let return_type = self.parse_type()?;
 
-        self.expect_old(TokenKind::Equals);
+        self.expect(TokenKind::Equals)?;
 
+        // parse_block_expr returns Option, parse_expr always returns Expr even if its an Expr:Error
         let body = match self.peek().kind {
-            TokenKind::LBrace => RelBody::Block(self.parse_block_expr()),
-            _ => RelBody::Expr(self.parse_expr(0)),
-        };
+            TokenKind::LBrace => self.parse_block_expr().map(RelBody::Block),
+            _ => Some(RelBody::Expr(self.parse_expr(0))),
+        }?;
 
-        self.expect_old(TokenKind::Semicolon);
+        self.expect(TokenKind::Semicolon)?;
 
-        RelType {
+        Some(RelType {
             name,
             params,
             return_type,
             body,
-        }
+        })
     }
 
     // { not consumed
-    fn parse_block_expr(&mut self) -> BlockExpr {
-        self.expect_old(TokenKind::LBrace);
+    fn parse_block_expr(&mut self) -> Option<BlockExpr> {
+        self.expect(TokenKind::LBrace)?;
 
         let mut statements = Vec::new();
 
         while self.peek().kind == TokenKind::Let {
             self.next();
 
-            statements.push(Statement::Let(self.parse_let_stmt().unwrap())); // TODO Error handling
+            statements.push(match self.parse_let_stmt() {
+                Some(stmt) => Statement::Let(stmt),
+                None => Statement::Error,
+            });
         }
 
         let expr = self.parse_expr(0);
 
-        self.expect_old(TokenKind::RBrace);
+        self.expect(TokenKind::RBrace)?;
 
-        BlockExpr {
+        Some(BlockExpr {
             statements,
             expr,
-        }
+        })
     }
 }
 
@@ -95,7 +99,7 @@ mod tests {
     }
 
     #[test]
-    fn test_rel_and() {
+    fn rel_and() {
         // rel_t AND : (a:Bool, b:Bool) -> Bool = a*b;
         let kinds: Vec<TokenKind> = vec![Ident("AND".to_string()), Colon, LParen, 
             Ident("a".to_string()), Colon, Bool, Comma,
@@ -111,7 +115,7 @@ mod tests {
 
         let result = parser.parse_rel_t();
 
-        assert_eq!(result, RelType {
+        assert_eq!(result, Some(RelType {
             name: "AND".to_string(),
             params: vec![Param {
                 name: "a".to_string(),
@@ -126,11 +130,11 @@ mod tests {
                 op: BinaryOp::Mul,
                 right: Box::new(Expr::Ident("b".to_string()))
             })),
-        });
+        }));
     }
 
     #[test]
-    fn test_rel_flip() {
+    fn rel_flip() {
         // rel_t FLIP : () -> Bool = {
         //     let p = 0.5;
 
@@ -151,7 +155,7 @@ mod tests {
 
         let result = parser.parse_rel_t();
 
-        assert_eq!(result, RelType {
+        assert_eq!(result, Some(RelType {
             name: "FLIP".to_string(),
             params: vec![],
             return_type: Type::Bool,
@@ -171,6 +175,39 @@ mod tests {
                     },
                 ]),
             }),
-        });
+        }));
     }
+
+    // #[test]
+    // fn bad_rel_flip() {
+    //     // rel_t FLIP : () -> Bool = {
+    //     //     let p = 0.5
+
+    //     //     sample 
+    //     //         p => true,
+    //     //         _ => false,
+    //     //     }
+    //     // };
+    //     let kinds: Vec<TokenKind> = vec![Ident("FLIP".to_string()), Colon, LParen, RParen, Arrow, Bool, Equals, LBrace,
+    //         Let, Ident("p".to_string()), Equals, RealLiteral(0.5), Semicolon,
+    //         Sample, LBrace, Ident("p".to_string()), FatArrow, BoolLiteral(true), Comma,
+    //         Underscore, FatArrow, BoolLiteral(false), Comma, RBrace,
+    //         RBrace, Semicolon, Eof];
+    //     let tokens: Vec<Token> = build_token_vec(kinds);
+
+    //     let mut diagnostics = Diagnostics::new();
+    //     let mut parser = Parser::new(tokens, &mut diagnostics);
+
+    //     let result = parser.parse_rel_t();
+
+    //     assert_eq!(result, Some(RelType {
+    //         name: "FLIP".to_string(),
+    //         params: vec![],
+    //         return_type: Type::Bool,
+    //         body: RelBody::Block(BlockExpr {
+    //             statements: vec![Statement::Error],
+    //             expr: Expr::Error,
+    //         }),
+    //     }));
+    // }
 }
