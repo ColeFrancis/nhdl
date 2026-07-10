@@ -11,18 +11,30 @@
 //! Last Updated: 07/06/2026
 
 use super::Parser;
-use crate::compiler::token::TokenKind;
+use crate::compiler::token::{Token, TokenKind};
 use crate::compiler::ast::*;
+use crate::compiler::diagnostics::{CompilerError, Expected};
 
 impl<'a> Parser<'a> {
     // Pratt Parser for expressions
     //     If calling to parse expr, use min_bp = 0
-    pub(super) fn parse_expr(&mut self, min_bp: u8) -> Expr {
-        let mut lhs = self.parse_prefix();
+    //
+    // Error Handling:
+    //  If any portion of an expression contians an error, the entire expression will be
+    //  treated as Expr::Error. 
+    //      ex: (a+2, 1 + (2 + ), 1) is Expr::Error
+    //  One "exception" to this is if the return portion of a match or sample expression
+    //  contains an error, only the return portion of the match expression will be Expr::Error
+    //      ex: match a {1 => 2+, _ => 0} is match a {1 => Expr::Error, _ => 0} not Expr::Error
+    //      ex match a {1+ => 1, _ => 0} is Expr::Error
+    pub(super) fn parse_expr(&mut self, min_bp: u8) -> Option<Expr> {
+        let mut lhs = self.parse_prefix()?;
 
         loop {
+            let token = self.peek().clone();
+
             let Some((op, left_bp, right_bp)) = 
-                self.infix_into(&self.peek().kind)
+                self.infix_into(&token)
             else {
                 break;
             };
@@ -33,7 +45,7 @@ impl<'a> Parser<'a> {
 
             self.next();
             
-            let rhs = self.parse_expr(right_bp);
+            let rhs = self.parse_expr(right_bp)?;
 
             lhs = Expr::Binary(BinaryExpr {
                 left: Box::new(lhs),
@@ -42,60 +54,92 @@ impl<'a> Parser<'a> {
             });
         }
 
-        lhs
+        Some(lhs)
     }
 
-    fn parse_prefix(&mut self) -> Expr {
-        match self.next().kind {
-            TokenKind::BoolLiteral(n) => Expr::Literal(Literal::Bool(n)),
-            TokenKind::IntLiteral(n)  => Expr::Literal(Literal::Int(n)),
-            TokenKind::RealLiteral(n) => Expr::Literal(Literal::Real(n)),
+    fn parse_prefix(&mut self) -> Option<Expr> {
+        let token = self.next();
+
+        match token.kind {
+            TokenKind::BoolLiteral(n) => Some(Expr::Literal(Literal::Bool(n))),
+            TokenKind::IntLiteral(n)  => Some(Expr::Literal(Literal::Int(n))),
+            TokenKind::RealLiteral(n) => Some(Expr::Literal(Literal::Real(n))),
             
-            TokenKind::Ident(str) => Expr::Ident(str),
+            TokenKind::Ident(str) => Some(Expr::Ident(str)),
 
             TokenKind::Minus => {
-                let rhs = self.parse_expr(25); // Unary binding power
-                Expr::Unary(UnaryExpr {op: UnaryOp::Neg, expr: Box::new(rhs)})
+                let rhs = self.parse_expr(25)?; // Unary binding power
+                Some(Expr::Unary(UnaryExpr {op: UnaryOp::Neg, expr: Box::new(rhs)}))
             }
             TokenKind::BitNot => {
-                let rhs = self.parse_expr(25); // Unary binding power
-                Expr::Unary(UnaryExpr {op: UnaryOp::BitNot, expr: Box::new(rhs)})
+                let rhs = self.parse_expr(25)?; // Unary binding power
+                Some(Expr::Unary(UnaryExpr {op: UnaryOp::BitNot, expr: Box::new(rhs)}))
             }
 
             TokenKind::LParen => {
                 let first = self.parse_expr(0);
             
-                match self.next().kind {
+                let token = self.next();
+                match token.kind {
                     TokenKind::RParen => {
                         first
                     }
             
                     TokenKind::Comma => {
-                        let mut elements = vec![first];
-                        elements.push(self.parse_expr(0));
+                        let mut elements = vec![first?];
+                        elements.push(self.parse_expr(0)?);
                         
                         while self.peek().kind == TokenKind::Comma {
                             self.next();
-                            elements.push(self.parse_expr(0));
+                            elements.push(self.parse_expr(0)?);
                         }
             
-                        self.expect_old(TokenKind::RParen);
-                        Expr::Tuple(elements)
+                        self.expect(TokenKind::RParen)?;
+                        Some(Expr::Tuple(elements))
                     }
             
-                    _ => panic!("Expected ',' or ')'. TODO: elegant error handling"),
+                    other => {
+                        self.diagnostics.error(CompilerError::UnexpectedToken {
+                            expected: vec![
+                                Expected::Token(TokenKind::RParen),
+                                Expected::Token(TokenKind::Comma),
+                            ],
+                            found: other,
+                            span: token.span,
+                        });
+
+                        None
+                    }
                 }
             }
 
-            TokenKind::Match => self.parse_match(),
+            TokenKind::Match  => self.parse_match(),
             TokenKind::Sample => self.parse_sample(),
 
-            other => panic!("Unexpected prefix token: {:?}", other),
+            other => {
+                self.diagnostics.error(CompilerError::UnexpectedToken {
+                    expected: vec![
+                        Expected::BoolLiteral,
+                        Expected::IntLiteral,
+                        Expected::RealLiteral,
+                        Expected::Ident,
+                        Expected::Token(TokenKind::Minus),
+                        Expected::Token(TokenKind::BitNot),
+                        Expected::Token(TokenKind::LParen),
+                        Expected::Token(TokenKind::Match),
+                        Expected::Token(TokenKind::Sample),
+                    ],
+                    found: other,
+                    span: token.span,
+                });
+
+                None
+            }
         }
     }
 
-    fn infix_into(&self, op: &TokenKind) -> Option<(BinaryOp, u8, u8)> {
-        match op {
+    fn infix_into(&mut self, token: &Token) -> Option<(BinaryOp, u8, u8)> {
+        match &token.kind {
             TokenKind::Gt       => Some((BinaryOp::Gt,   1,  2)),
             TokenKind::Lt       => Some((BinaryOp::Lt,   1,  2)),
             TokenKind::Ge       => Some((BinaryOp::Ge,   1,  2)),
@@ -105,20 +149,28 @@ impl<'a> Parser<'a> {
             TokenKind::Asterisk => Some((BinaryOp::Mul, 20, 21)),
             TokenKind::Slash    => Some((BinaryOp::Div, 20, 21)),
             TokenKind::Caret    => Some((BinaryOp::Pow, 31, 30)),
-            _ => None,
+            other => {
+                self.diagnostics.error(CompilerError::UnexpectedToken {
+                    expected: vec![],
+                    found: other.clone(),
+                    span: token.span.clone(),
+                });
+
+                None
+            }
         }
     }
 
     // Match token already consumed
-    fn parse_match(&mut self) -> Expr {
-        let scrutinee = self.parse_expr(0);
+    fn parse_match(&mut self) -> Option<Expr> {
+        let scrutinee = self.parse_expr(0)?;
 
-        self.expect_old(TokenKind::LBrace);
+        self.expect(TokenKind::LBrace)?;
 
         let mut arms = Vec::new();
 
         while self.peek().kind != TokenKind::RBrace {
-            arms.push(self.parse_match_arm());
+            arms.push(self.parse_match_arm()?);
 
             if self.peek().kind == TokenKind::Comma {
                 self.next();
@@ -127,93 +179,117 @@ impl<'a> Parser<'a> {
             }
         }
 
-        self.expect_old(TokenKind::RBrace);
+        self.expect(TokenKind::RBrace)?;
 
-        Expr::Match(MatchExpr {
+        Some(Expr::Match(MatchExpr {
             scrutinee: Box::new(scrutinee),
             arms,
+        }))
+    }
+
+    fn parse_match_arm(&mut self) -> Option<MatchArm> {
+        let pattern = self.parse_pattern()?;
+
+        self.expect(TokenKind::FatArrow)?;
+
+        let expr = match self.parse_expr(0) {
+            Some(expr) => expr,
+            None => Expr::Error,
+        };
+
+        Some(MatchArm {
+            pattern,
+            expr,
         })
     }
 
-    fn parse_match_arm(&mut self) -> MatchArm {
-        let pattern = self.parse_pattern();
-
-        self.expect_old(TokenKind::FatArrow);
-
-        let expr = self.parse_expr(0);
-
-        MatchArm {
-            pattern,
-            expr,
-        }
-    }
-
-    fn parse_pattern(&mut self) -> Vec<SimplePattern> {
-        let mut patterns = vec![self.parse_simple_pattern()];
+    fn parse_pattern(&mut self) -> Option<Vec<SimplePattern>> {
+        let mut patterns = vec![self.parse_simple_pattern()?];
 
         while self.peek().kind == TokenKind::Pipe {
             self.next();
-            patterns.push(self.parse_simple_pattern());
+            patterns.push(self.parse_simple_pattern()?);
         }
 
-        patterns
+        Some(patterns)
     }
 
-    fn parse_simple_pattern(&mut self) -> SimplePattern {
-        match self.next().kind {
-            TokenKind::Underscore     => SimplePattern::Default,
+    fn parse_simple_pattern(&mut self) -> Option<SimplePattern> {
+        let token = self.next();
 
-            TokenKind::BoolLiteral(n) => SimplePattern::Literal(Literal::Bool(n)),
-            TokenKind::IntLiteral(n)  => SimplePattern::Literal(Literal::Int(n)),
-            TokenKind::RealLiteral(n) => SimplePattern::Literal(Literal::Real(n)),
+        match token.kind {
+            TokenKind::Underscore => Some(SimplePattern::Default),
 
-            TokenKind::Ident(name)    => SimplePattern::Ident(name),
+            TokenKind::BoolLiteral(n) => Some(SimplePattern::Literal(Literal::Bool(n))),
+            TokenKind::IntLiteral(n)  => Some(SimplePattern::Literal(Literal::Int(n))),
+            TokenKind::RealLiteral(n) => Some(SimplePattern::Literal(Literal::Real(n))),
 
-            TokenKind::LParen         => self.parse_tuple_pattern(),
+            TokenKind::Ident(name) => Some(SimplePattern::Ident(name)),
 
-            TokenKind::Gt             => self.parse_comparison_pattern(CompOp::Gt),
-            TokenKind::Lt             => self.parse_comparison_pattern(CompOp::Lt),
-            TokenKind::Ge             => self.parse_comparison_pattern(CompOp::Ge),
-            TokenKind::Le             => self.parse_comparison_pattern(CompOp::Le),
+            TokenKind::LParen => self.parse_tuple_pattern(),
 
-            token => panic!("Unexpected token in pattern: {:?}", token),
+            TokenKind::Gt => self.parse_comparison_pattern(CompOp::Gt),
+            TokenKind::Lt => self.parse_comparison_pattern(CompOp::Lt),
+            TokenKind::Ge => self.parse_comparison_pattern(CompOp::Ge),
+            TokenKind::Le => self.parse_comparison_pattern(CompOp::Le),
+
+            other => {
+                self.diagnostics.error(CompilerError::UnexpectedToken {
+                    expected: vec![
+                        Expected::Token(TokenKind::Underscore),
+                        Expected::BoolLiteral,
+                        Expected::IntLiteral,
+                        Expected::RealLiteral,
+                        Expected::Ident,
+                        Expected::Token(TokenKind::LParen),
+                        Expected::Token(TokenKind::Gt),
+                        Expected::Token(TokenKind::Lt),
+                        Expected::Token(TokenKind::Ge),
+                        Expected::Token(TokenKind::Le),
+                    ],
+                    found: other,
+                    span: token.span,
+                });
+
+                None
+            }
         }
     }
 
-    fn parse_tuple_pattern(&mut self) -> SimplePattern {
-        let mut items = vec![self.parse_simple_pattern()];
+    fn parse_tuple_pattern(&mut self) -> Option<SimplePattern> {
+        let mut items = vec![self.parse_simple_pattern()?];
 
-        self.expect_old(TokenKind::Comma);
+        self.expect(TokenKind::Comma)?;
 
-        items.push(self.parse_simple_pattern());
+        items.push(self.parse_simple_pattern()?);
 
         while self.peek().kind == TokenKind::Comma {
             self.next();
-            items.push(self.parse_simple_pattern());
+            items.push(self.parse_simple_pattern()?);
         }
 
-        self.expect_old(TokenKind::RParen);
+        self.expect(TokenKind::RParen)?;
 
-        SimplePattern::Tuple(items)
+        Some(SimplePattern::Tuple(items))
     }
 
-    fn parse_comparison_pattern(&mut self, op: CompOp) -> SimplePattern {
-        let expr = self.parse_expr(0);
+    fn parse_comparison_pattern(&mut self, op: CompOp) -> Option<SimplePattern> {
+        let expr = self.parse_expr(0)?;
 
-        SimplePattern::Comparison(ComparisonPattern {
+        Some(SimplePattern::Comparison(ComparisonPattern {
             op,
             expr: Box::new(expr),
-        })
+        }))
     }
 
     // Sample token already consumed
-    fn parse_sample(&mut self) -> Expr {
-        self.expect_old(TokenKind::LBrace);
+    fn parse_sample(&mut self) -> Option<Expr> {
+        self.expect(TokenKind::LBrace)?;
 
         let mut arms = Vec::new();
 
         while self.peek().kind != TokenKind::RBrace {
-            arms.push(self.parse_sample_arm());
+            arms.push(self.parse_sample_arm()?);
 
             if self.peek().kind == TokenKind::Comma {
                 self.next();
@@ -222,28 +298,34 @@ impl<'a> Parser<'a> {
             }
         }
 
-        self.expect_old(TokenKind::RBrace);
+        self.expect(TokenKind::RBrace)?;
 
-        Expr::Sample(arms)
+        Some(Expr::Sample(arms))
     }
 
-    fn parse_sample_arm(&mut self) -> SampleArm {
+    fn parse_sample_arm(&mut self) -> Option<SampleArm> {
         let prob = match &self.peek().kind {
             TokenKind::Underscore => {
                 self.next();
                 Prob::Default
             },
-            _ => Prob::Expr(self.parse_expr(0)),
+            _ => Prob::Expr( match self.parse_expr(0) {
+                Some(expr) => expr,
+                None => Expr::Error,
+            }),
         };
 
-        self.expect_old(TokenKind::FatArrow);
+        self.expect(TokenKind::FatArrow)?;
 
-        let expr = self.parse_expr(0);
+        let expr = match self.parse_expr(0) {
+            Some(expr) => expr,
+            None => Expr::Error,
+        };
 
-        SampleArm {
+        Some(SampleArm {
             prob,
             expr,
-        }
+        })
     }
 }
 
@@ -317,6 +399,10 @@ mod tests {
                     .join(" ");
 
                 format!("(sample {})", arms)
+            }
+
+            Expr::Error => {
+                format!("(error)")
             }
         }
     }
@@ -416,7 +502,7 @@ mod tests {
 
     #[test]
     fn test_build_s_expr() {
-        let start: Expr = Expr::Binary(BinaryExpr {
+        let start = Expr::Binary(BinaryExpr {
             left: Box::new(Expr::Unary(UnaryExpr {
                 op: UnaryOp::Neg,
                 expr: Box::new(Expr::Literal(Literal::Int(5))),
@@ -442,7 +528,7 @@ mod tests {
         let mut diagnostics = Diagnostics::new();
         let mut parser = Parser::new(tokens, &mut diagnostics);
 
-        let result: Expr = parser.parse_prefix();
+        let result = parser.parse_prefix().unwrap();
 
         assert_eq!(result, Expr::Literal(Literal::Int(3)));
     
@@ -452,7 +538,7 @@ mod tests {
         let mut diagnostics = Diagnostics::new();
         let mut parser = Parser::new(tokens, &mut diagnostics);
 
-        let result: Expr = parser.parse_prefix();
+        let result = parser.parse_prefix().unwrap();
 
         assert_eq!(result, Expr::Ident("hey".to_string()));
     }
@@ -466,7 +552,7 @@ mod tests {
         let mut diagnostics = Diagnostics::new();
         let mut parser = Parser::new(tokens, &mut diagnostics);
 
-        let result: Expr = parser.parse_prefix();
+        let result = parser.parse_prefix().unwrap();
         
         let result_str: String = build_s_expr(&result);
 
@@ -484,7 +570,7 @@ mod tests {
         let mut diagnostics = Diagnostics::new();
         let mut parser = Parser::new(tokens, &mut diagnostics);
 
-        let result: Expr = parser.parse_expr(0);
+        let result = parser.parse_expr(0).unwrap();
 
         let result_str: String = build_s_expr(&result);
 
@@ -498,7 +584,7 @@ mod tests {
         let mut diagnostics = Diagnostics::new();
         let mut parser = Parser::new(tokens, &mut diagnostics);
 
-        let result: Expr = parser.parse_expr(0);
+        let result = parser.parse_expr(0).unwrap();
 
         let result_str: String = build_s_expr(&result);
 
@@ -514,7 +600,7 @@ mod tests {
         let mut diagnostics = Diagnostics::new();
         let mut parser = Parser::new(tokens, &mut diagnostics);
 
-        let result: Expr = parser.parse_expr(0);
+        let result = parser.parse_expr(0).unwrap();
 
         let result_str: String = build_s_expr(&result);
 
@@ -532,7 +618,7 @@ mod tests {
         let mut diagnostics = Diagnostics::new();
         let mut parser = Parser::new(tokens, &mut diagnostics);
 
-        let result: Expr = parser.parse_expr(0);
+        let result: Expr = parser.parse_expr(0).unwrap();
 
         let result_str: String = build_s_expr(&result);
 
@@ -547,7 +633,7 @@ mod tests {
         let mut diagnostics = Diagnostics::new();
         let mut parser = Parser::new(tokens, &mut diagnostics);
 
-        let result: Expr = parser.parse_expr(0);
+        let result= parser.parse_expr(0).unwrap();
 
         let result_str: String = build_s_expr(&result);
 
@@ -569,7 +655,7 @@ mod tests {
         let mut diagnostics = Diagnostics::new();
         let mut parser = Parser::new(tokens, &mut diagnostics);
 
-        let result: Expr = parser.parse_expr(0);
+        let result= parser.parse_expr(0).unwrap();
 
         let result_str: String = build_s_expr(&result);
 
@@ -591,7 +677,7 @@ mod tests {
         let mut diagnostics = Diagnostics::new();
         let mut parser = Parser::new(tokens, &mut diagnostics);
 
-        let result: Expr = parser.parse_expr(0);
+        let result= parser.parse_expr(0).unwrap();
 
         let result_str: String = build_s_expr(&result);
 
@@ -613,7 +699,7 @@ mod tests {
         let mut diagnostics = Diagnostics::new();
         let mut parser = Parser::new(tokens, &mut diagnostics);
 
-        let result: Expr = parser.parse_expr(0);
+        let result= parser.parse_expr(0).unwrap();
 
         let result_str: String = build_s_expr(&result);
 
@@ -644,7 +730,7 @@ mod tests {
         let mut diagnostics = Diagnostics::new();
         let mut parser = Parser::new(tokens, &mut diagnostics);
 
-        let result: Expr = parser.parse_expr(0);
+        let result= parser.parse_expr(0).unwrap();
 
         let result_str: String = build_s_expr(&result);
 

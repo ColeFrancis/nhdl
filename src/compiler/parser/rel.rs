@@ -46,7 +46,10 @@ impl<'a> Parser<'a> {
         // parse_block_expr returns Option, parse_expr always returns Expr even if its an Expr:Error
         let body = match self.peek().kind {
             TokenKind::LBrace => self.parse_block_expr().map(RelBody::Block),
-            _ => Some(RelBody::Expr(self.parse_expr(0))),
+            _ => Some(RelBody::Expr(match self.parse_expr(0) {
+                Some(expr) => expr,
+                None => Expr::Error,
+            })),
         }?;
 
         self.expect(TokenKind::Semicolon)?;
@@ -74,7 +77,10 @@ impl<'a> Parser<'a> {
             });
         }
 
-        let expr = self.parse_expr(0);
+        let expr = match self.parse_expr(0) {
+            Some(expr) => expr,
+            None => Expr::Error,
+        };
 
         self.expect(TokenKind::RBrace)?;
 
@@ -180,13 +186,11 @@ mod tests {
 
     // #[test]
     // fn bad_rel_flip() {
-    //     // rel_t FLIP : () -> Bool = {
+    //     // rel_t NUM : () -> Real = {
     //     //     let p = 0.5
-
-    //     //     sample 
-    //     //         p => true,
-    //     //         _ => false,
-    //     //     }
+    //     //     let q = 0.4;
+        
+    //     //     p+q
     //     // };
     //     let kinds: Vec<TokenKind> = vec![Ident("FLIP".to_string()), Colon, LParen, RParen, Arrow, Bool, Equals, LBrace,
     //         Let, Ident("p".to_string()), Equals, RealLiteral(0.5), Semicolon,
@@ -201,11 +205,17 @@ mod tests {
     //     let result = parser.parse_rel_t();
 
     //     assert_eq!(result, Some(RelType {
-    //         name: "FLIP".to_string(),
+    //         name: "NUM".to_string(),
     //         params: vec![],
-    //         return_type: Type::Bool,
+    //         return_type: Type::Real,
     //         body: RelBody::Block(BlockExpr {
-    //             statements: vec![Statement::Error],
+    //             statements: vec![
+    //                 Statement::Error,
+    //                 Statement::Let(LetStatement {
+    //                     name: "q".to_string(),
+    //                     expr: Expr::Literal(Literal::Real(0.4)),
+    //                 })
+    //             ],
     //             expr: Expr::Error,
     //         }),
     //     }));

@@ -66,5 +66,7 @@ pub enum Expected {
     Token(TokenKind),
     Expr,
     Ident,
-    Literal,
+    BoolLiteral,
+    IntLiteral,
+    RealLiteral,
 }

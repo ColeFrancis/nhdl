@@ -102,7 +102,10 @@ impl<'a> Parser<'a> {
 
         self.expect(TokenKind::Equals)?;
 
-        let val = self.parse_expr(0);
+        let val = match self.parse_expr(0) {
+            Some(expr) => expr,
+            None => Expr::Error,
+        };
 
         self.expect(TokenKind::Semicolon)?;
 
