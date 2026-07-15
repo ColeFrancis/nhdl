@@ -37,15 +37,15 @@ impl<'a> Parser<'a> {
     // Never consume a } that belongs to the caller's block.
     // If you skip into a nested {...} block, skip the entire block before trying to resume.
     // Only recover at tokens that are valid starts of constructs at the current nesting level
-    pub(super) fn sync(&mut self, rule: SyncRule) {
+    pub(super) fn sync(&mut self, rule: &SyncRule) {
         match rule {
-            SyncRule::Item => self.sync_item(),
+            &SyncRule::Item => self.sync_item(),
 
-            SyncRule::Inst => self.sync_inst(),
+            &SyncRule::Inst => self.sync_inst(),
 
-            SyncRule::Statement => self.sync_statement(),
+            &SyncRule::Statement => self.sync_statement(),
 
-            SyncRule::Expr => self.sync_expr(),
+            &SyncRule::Expr => self.sync_expr(),
         }
     }
 
@@ -116,7 +116,7 @@ impl<'a> Parser<'a> {
             match self.peek().kind {
                 TokenKind::Eof => break,
 
-                TokenKind::LBrace => depth += 1;
+                TokenKind::LBrace => depth += 1,
                 TokenKind::RBrace => {
                     if depth > 0 {
                         depth -= 1;
@@ -164,12 +164,13 @@ impl<'a> Parser<'a> {
                 TokenKind::Output => break,
                 TokenKind::Init => break,
 
-                TokenKind::Ident => match self.peek_n(2) {
+                TokenKind::Ident(_) => match self.peek_n(2).kind {
                     TokenKind::Connect => break,
                     TokenKind::LBrace => break,
+                    _ => (),
                 }
 
-                TokenKind::Semicolon if depth == 0 {
+                TokenKind::Semicolon if depth == 0 => {
                     self.next();
                     break;
                 }
@@ -186,7 +187,7 @@ impl<'a> Parser<'a> {
 
         loop {
             match self.peek().kind {
-                Eof => break,
+                TokenKind::Eof => break,
 
                 TokenKind::LBrace => depth += 1,
                 TokenKind::RBrace => {
@@ -200,7 +201,7 @@ impl<'a> Parser<'a> {
 
                 TokenKind::Let if depth == 0 => break,
 
-                TokenKind::Semicolon if depth == 0 {
+                TokenKind::Semicolon if depth == 0 => {
                     self.next();
                     break;
                 }
@@ -218,7 +219,7 @@ impl<'a> Parser<'a> {
             match self.peek().kind {
                 TokenKind::Eof => break,
 
-                TokenKind::LBrace => depth += 1;
+                TokenKind::LBrace => depth += 1,
                 TokenKind::RBrace => {
                     if depth > 0 {
                         depth -= 1;

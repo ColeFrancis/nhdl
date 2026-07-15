@@ -33,9 +33,9 @@ use crate::compiler::{
 impl<'a> Parser<'a> {
     // Net token already consumed
     pub(super) fn parse_net(&mut self) -> Option<Net> {
-        let name = self.expect_ident()?;
+        let name = self.expect_ident(&SyncRule::Item)?;
 
-        self.expect(TokenKind::LBrace)?;
+        self.expect(TokenKind::LBrace, &SyncRule::Item)?;
 
         let mut items = Vec::new();
 
@@ -43,7 +43,7 @@ impl<'a> Parser<'a> {
             items.push(self.parse_net_item());
         }
 
-        self.expect(TokenKind::RBrace)?;
+        self.expect(TokenKind::RBrace, &SyncRule::Item)?;
 
         Some(Net {
             name,
@@ -59,7 +59,7 @@ impl<'a> Parser<'a> {
                 self.next();
 
                 // If either parse_param or expect return None, then get NetItem::Error
-                match (self.parse_param(), self.expect(TokenKind::Semicolon)) {
+                match (self.parse_param(&SyncRule::Inst), self.expect(TokenKind::Semicolon, &SyncRule::Inst)) {
                     (Some(param), Some(_)) => NetItem::Input(param),
                     _ => NetItem::Error,
                 }
@@ -69,7 +69,7 @@ impl<'a> Parser<'a> {
                 self.next();
 
                 // If either parse_param or expect return None, then get NetItem::Error
-                match (self.parse_param(), self.expect(TokenKind::Semicolon)) {
+                match (self.parse_param(&SyncRule::Inst), self.expect(TokenKind::Semicolon, &SyncRule::Inst)) {
                     (Some(param), Some(_)) => NetItem::Output(param),
                     _ => NetItem::Error,
                 }
@@ -107,7 +107,7 @@ impl<'a> Parser<'a> {
                     span: token.span.clone(),
                 });
 
-                self.sync(SyncRule::Inst);
+                self.sync(&SyncRule::Inst);
 
                 NetItem::Error
             } 
@@ -115,16 +115,16 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_init_ent(&mut self) -> Option<EntInit> {
-        let param = self.parse_param()?;
+        let param = self.parse_param(&SyncRule::Inst)?;
 
-        self.expect(TokenKind::Equals)?;
+        self.expect(TokenKind::Equals, &SyncRule::Inst)?;
 
         let val = match self.parse_expr(0) {
             Some(expr) => expr,
             None => Expr::Error,
         };
 
-        self.expect(TokenKind::Semicolon)?;
+        self.expect(TokenKind::Semicolon, &SyncRule::Inst)?;
 
         Some(EntInit {
             param,
@@ -133,18 +133,18 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_rel_inst(&mut self) -> Option<RelInst> {
-        let asignee = self.expect_ident()?;
+        let asignee = self.expect_ident(&SyncRule::Inst)?;
 
-        self.expect(TokenKind::Connect)?;
+        self.expect(TokenKind::Connect, &SyncRule::Inst)?;
 
-        let rel = self.expect_ident()?;
+        let rel = self.expect_ident(&SyncRule::Inst)?;
 
-        self.expect(TokenKind::LParen)?;
+        self.expect(TokenKind::LParen, &SyncRule::Inst)?;
 
         let mut args = Vec::new();
 
         while self.peek().kind != TokenKind::RParen {
-            args.push(self.expect_ident()?);
+            args.push(self.expect_ident(&SyncRule::Inst)?);
 
             if self.peek().kind == TokenKind::Comma {
                 self.next();
@@ -153,9 +153,9 @@ impl<'a> Parser<'a> {
             }
         }
 
-        self.expect(TokenKind::RParen)?;
+        self.expect(TokenKind::RParen, &SyncRule::Inst)?;
 
-        self.expect(TokenKind::Semicolon)?;
+        self.expect(TokenKind::Semicolon, &SyncRule::Inst)?;
 
         Some(RelInst {
             asignee,
@@ -165,9 +165,9 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_net_inst(&mut self) -> Option<NetInst> {
-        let net = self.expect_ident()?;
+        let net = self.expect_ident(&SyncRule::Inst)?;
 
-        self.expect(TokenKind::LBrace)?;
+        self.expect(TokenKind::LBrace, &SyncRule::Inst)?;
 
         let mut connections = Vec::new();
 
@@ -181,9 +181,9 @@ impl<'a> Parser<'a> {
             }
         }
 
-        self.expect(TokenKind::RBrace);
+        self.expect(TokenKind::RBrace, &SyncRule::Inst);
 
-        self.expect(TokenKind::Semicolon)?;
+        self.expect(TokenKind::Semicolon, &SyncRule::Inst)?;
 
         Some(NetInst {
             net,
@@ -192,11 +192,11 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_connection(&mut self) -> Option<Connection> {
-        let port = self.expect_ident()?;
+        let port = self.expect_ident(&SyncRule::Inst)?;
 
-        self.expect(TokenKind::Connect)?;
+        self.expect(TokenKind::Connect, &SyncRule::Inst)?;
 
-        let net = self.expect_ident()?;
+        let net = self.expect_ident(&SyncRule::Inst)?;
 
         Some(Connection {
             port,

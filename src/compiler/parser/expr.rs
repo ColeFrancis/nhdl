@@ -109,7 +109,7 @@ impl<'a> Parser<'a> {
                             elements.push(self.parse_expr(0)?);
                         }
             
-                        self.expect(TokenKind::RParen)?;
+                        self.expect(TokenKind::RParen, &SyncRule::Expr)?;
                         Some(Expr::Tuple(elements))
                     }
             
@@ -123,7 +123,7 @@ impl<'a> Parser<'a> {
                             span: token.span,
                         });
 
-                        self.sync(SyncRule::Expr);
+                        self.sync(&SyncRule::Expr);
 
                         None
                     }
@@ -150,7 +150,7 @@ impl<'a> Parser<'a> {
                     span: token.span,
                 });
 
-                self.sync(SyncRule::Expr);
+                self.sync(&SyncRule::Expr);
 
                 None
             }
@@ -176,7 +176,7 @@ impl<'a> Parser<'a> {
     fn parse_match(&mut self) -> Option<Expr> {
         let scrutinee = self.parse_expr(0)?;
 
-        self.expect(TokenKind::LBrace)?;
+        self.expect(TokenKind::LBrace, &SyncRule::Expr)?;
 
         let mut arms = Vec::new();
 
@@ -190,7 +190,7 @@ impl<'a> Parser<'a> {
             }
         }
 
-        self.expect(TokenKind::RBrace)?;
+        self.expect(TokenKind::RBrace, &SyncRule::Expr)?;
 
         Some(Expr::Match(MatchExpr {
             scrutinee: Box::new(scrutinee),
@@ -201,7 +201,7 @@ impl<'a> Parser<'a> {
     fn parse_match_arm(&mut self) -> Option<MatchArm> {
         let pattern = self.parse_pattern()?;
 
-        self.expect(TokenKind::FatArrow)?;
+        self.expect(TokenKind::FatArrow, &SyncRule::Expr)?;
 
         let expr = match self.parse_expr(0) {
             Some(expr) => expr,
@@ -262,7 +262,7 @@ impl<'a> Parser<'a> {
                     span: token.span,
                 });
 
-                self.sync(SyncRule::Expr);
+                self.sync(&SyncRule::Expr);
 
                 None
             }
@@ -272,7 +272,7 @@ impl<'a> Parser<'a> {
     fn parse_tuple_pattern(&mut self) -> Option<SimplePattern> {
         let mut items = vec![self.parse_simple_pattern()?];
 
-        self.expect(TokenKind::Comma)?;
+        self.expect(TokenKind::Comma, &SyncRule::Expr)?;
 
         items.push(self.parse_simple_pattern()?);
 
@@ -281,7 +281,7 @@ impl<'a> Parser<'a> {
             items.push(self.parse_simple_pattern()?);
         }
 
-        self.expect(TokenKind::RParen)?;
+        self.expect(TokenKind::RParen, &SyncRule::Expr)?;
 
         Some(SimplePattern::Tuple(items))
     }
@@ -297,7 +297,7 @@ impl<'a> Parser<'a> {
 
     // Sample token already consumed
     fn parse_sample(&mut self) -> Option<Expr> {
-        self.expect(TokenKind::LBrace)?;
+        self.expect(TokenKind::LBrace, &SyncRule::Expr)?;
 
         let mut arms = Vec::new();
 
@@ -311,7 +311,7 @@ impl<'a> Parser<'a> {
             }
         }
 
-        self.expect(TokenKind::RBrace)?;
+        self.expect(TokenKind::RBrace, &SyncRule::Expr)?;
 
         Some(Expr::Sample(arms))
     }
@@ -328,7 +328,7 @@ impl<'a> Parser<'a> {
             }),
         };
 
-        self.expect(TokenKind::FatArrow)?;
+        self.expect(TokenKind::FatArrow, &SyncRule::Expr)?;
 
         let expr = match self.parse_expr(0) {
             Some(expr) => expr,

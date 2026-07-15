@@ -79,7 +79,7 @@ impl<'a> Parser<'a> {
                         span: token.span,
                     });
 
-                    self.sync(SyncRule::Item);
+                    self.sync(&SyncRule::Item);
 
                     Item::Error
                 },
@@ -106,60 +106,62 @@ impl<'a> Parser<'a> {
     }
 
     // TODO: add sync
-    pub(super) fn expect(&mut self, expected: TokenKind)-> Option<()> {
+    pub(super) fn expect(&mut self, expected: TokenKind, rule: &SyncRule)-> Option<()> {
         let token = self.next();
 
         if token.kind == expected {
             return Some(());
+        } else if token.kind == TokenKind::Eof {
+            self.diagnostics.error(CompilerError::UnexpectedToken {
+                expected: vec![Expected::Ident],
+                found: TokenKind::Eof,
+                span: token.span,
+            });
+
+            return None;
         } else {
             self.diagnostics.error(CompilerError::UnexpectedToken {
                 expected: vec![Expected::Token(TokenKind::Equals)],
                 found: token.kind,
                 span: token.span,
             });
+            self.sync(rule);
+
             return None;
         }
     }
 
     // TODO: add sync
-    pub(super) fn expect_ident(&mut self) -> Option<String> {
+    pub(super) fn expect_ident(&mut self, rule: &SyncRule) -> Option<String> {
         let token = self.next();
 
         match token.kind {
             TokenKind::Ident(name) => Some(name),
+            TokenKind::Eof => {
+                self.diagnostics.error(CompilerError::UnexpectedToken {
+                    expected: vec![Expected::Ident],
+                    found: TokenKind::Eof,
+                    span: token.span,
+                });
+
+                None
+
+            }
             other => {
                 self.diagnostics.error(CompilerError::UnexpectedToken {
                     expected: vec![Expected::Ident],
                     found: other,
                     span: token.span,
                 });
+                self.sync(rule);
 
                 None
             }
         }
     }
-
-    // Let token already consumed
-    pub(super) fn parse_let_stmt(&mut self) -> Option<LetStatement> {
-        let name = self.expect_ident()?;
-
-        self.expect(TokenKind::Equals)?;
-
-        let expr = match self.parse_expr(0) {
-            Some(expr) => expr,
-            None => Expr::Error,
-        };
-
-        self.expect(TokenKind::Semicolon)?;
-
-        Some(LetStatement {
-            name,
-            expr,
-        })
-    }
     
     // TODO: add sync
-    pub(super) fn parse_type(&mut self) -> Option<Type> {
+    pub(super) fn parse_type(&mut self, rule: &SyncRule) -> Option<Type> {
         let token = self.next();
         
         match token.kind {
@@ -168,7 +170,8 @@ impl<'a> Parser<'a> {
             TokenKind::Int         => Some(Type::Int),
             TokenKind::Real        => Some(Type::Real),
             TokenKind::Mod         => {
-                self.expect(TokenKind::LParen)?;
+                self.expect(TokenKind::LParen, rule)?;
+
                 let token = self.next();
                 let n = match token.kind {
                     TokenKind::IntLiteral(n) => n,
@@ -178,11 +181,12 @@ impl<'a> Parser<'a> {
                             found: other,
                             span: token.span,
                         });
+                        self.sync(rule);
                         
                         return None;
                     }
                 };
-                self.expect(TokenKind::RParen)?;
+                self.expect(TokenKind::RParen, rule)?;
                 
                 Some(Type::Mod(n))
             }
@@ -201,18 +205,19 @@ impl<'a> Parser<'a> {
                     found: other,
                     span: token.span,
                 });
+                self.sync(rule);
                     
                 None
             }
         }
     }
 
-    pub(super) fn parse_param(&mut self) -> Option<Param> {
-        let name = self.expect_ident()?;
+    pub(super) fn parse_param(&mut self, rule: &SyncRule) -> Option<Param> {
+        let name = self.expect_ident(rule)?;
 
-        self.expect(TokenKind::Colon)?;
+        self.expect(TokenKind::Colon, rule)?;
 
-        let param_type = self.parse_type()?;
+        let param_type = self.parse_type(rule)?;
 
         Some(Param {
             name,
@@ -233,55 +238,6 @@ mod tests {
             .into_iter()
             .map(|x| Token {kind: x, span: Span{line: 0, col: 0}})
             .collect()
-    }
-
-    #[test]
-    fn let_statement() {
-        // let n = 1 + 2;
-        let kinds: Vec<TokenKind> = vec![Ident("n".to_string()), Equals, IntLiteral(1), Plus, IntLiteral(2), Semicolon, Eof];
-        let tokens: Vec<Token> = build_token_vec(kinds);
-
-        let mut diagnostics = Diagnostics::new();
-        let mut parser = Parser::new(tokens, &mut diagnostics);
-
-        let result = parser.parse_let_stmt();
-
-        assert_eq!(result, Some(LetStatement {
-            name: "n".to_string(),
-            expr: Expr::Binary(BinaryExpr {
-                left: Box::new(Expr::Literal(Literal::Int(1))),
-                op: BinaryOp::Add,
-                right: Box::new(Expr::Literal(Literal::Int(2))),
-            })
-        }));
-        assert!(!diagnostics.has_errors());
-    }
-
-    #[test] 
-    fn bad_let_statement() {
-        // let n = 1 + 2
-        let kinds: Vec<TokenKind> = vec![Ident("n".to_string()), Equals, IntLiteral(1), Plus, IntLiteral(2), Eof];
-        let tokens: Vec<Token> = build_token_vec(kinds);
-
-        let mut diagnostics = Diagnostics::new();
-        let mut parser = Parser::new(tokens, &mut diagnostics);
-
-        let result = parser.parse_let_stmt();
-
-        assert_eq!(result, None);
-        assert_eq!(diagnostics.num_errors(), 1); // unexpected token
-        
-        // let 9n = 1;
-        let mut diagnostics = Diagnostics::new();
-        let mut lexer = Lexer::new("9a = 1;", &mut diagnostics);
-        let tokens: Vec<Token> = lexer.tokenize();
-
-        let mut parser = Parser::new(tokens, &mut diagnostics);
-
-        let result = parser.parse_let_stmt();
-
-        assert_eq!(result, None);
-        assert_eq!(diagnostics.num_errors(), 2); // invalid num, unexpected token
     }
 
     #[test]

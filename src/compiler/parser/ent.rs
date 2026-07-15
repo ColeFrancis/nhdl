@@ -23,19 +23,20 @@
 //! Author: Cole Francis
 
 use super::Parser;
+use super::sync::SyncRule;
 use crate::compiler::token::TokenKind;
 use crate::compiler::ast::*;
 
 impl<'a> Parser<'a> {
     // Ent_t token already consumed
     pub(super) fn parse_ent_t(&mut self) -> Option<EntType> {
-        let name = self.expect_ident()?;
+        let name = self.expect_ident(&SyncRule::Item)?;
 
-        self.expect(TokenKind::Equals)?;
+        self.expect(TokenKind::Equals, &SyncRule::Item)?;
 
         let expr = self.parse_ent_expr()?;
 
-        self.expect(TokenKind::Semicolon)?;
+        self.expect(TokenKind::Semicolon, &SyncRule::Item)?;
 
         Some(EntType {
             name,
@@ -46,21 +47,21 @@ impl<'a> Parser<'a> {
     fn parse_ent_expr(&mut self) -> Option<EntExpr> {
         match &self.peek().kind {
             TokenKind::LBrace => self.parse_set_ent(),
-            _ => self.parse_type().map(EntExpr::Type),
+            _ => self.parse_type(&SyncRule::Item).map(EntExpr::Type),
         }
     }
 
     fn parse_set_ent(&mut self) -> Option<EntExpr> {
-        self.expect(TokenKind::LBrace)?;
+        self.expect(TokenKind::LBrace, &SyncRule::Item)?;
 
-        let mut members = vec![self.expect_ident()?];
+        let mut members = vec![self.expect_ident(&SyncRule::Item)?];
 
         while self.peek().kind == TokenKind::Comma {
             self.next();
-            members.push(self.expect_ident()?);
+            members.push(self.expect_ident(&SyncRule::Item)?);
         }
 
-        self.expect(TokenKind::RBrace)?;
+        self.expect(TokenKind::RBrace, &SyncRule::Item)?;
 
         Some(EntExpr::SetEnt(members))
     }
@@ -114,12 +115,12 @@ mod tests {
         let result = parser.parse_ent_t();
 
         assert_eq!(result, None);
-        assert!(diagnostics.has_errors());
+        assert_eq!(diagnostics.num_errors(), 1);
     }
 
     #[test]
     fn mod_ent() {
-        // ent_t z4 = Mod(4);
+        // ent_t z4 = Mod(4); 
         let kinds: Vec<TokenKind> = vec![Ident("z4".to_string()), Equals, 
             Mod, LParen, IntLiteral(4), RParen, Semicolon, Eof];
 
@@ -138,7 +139,7 @@ mod tests {
 
     #[test]
     fn bad_mod_ent() {
-        // ent_t z4 = mod(4);
+        // ent_t z4 = mod(4);    (should be Mod not mod)
         let kinds: Vec<TokenKind> = vec![Ident("z4".to_string()), Equals, 
             Ident("mod".to_string()), LParen, IntLiteral(4), RParen, Semicolon, Eof];
 
@@ -150,5 +151,34 @@ mod tests {
         let result = parser.parse_ent_t();
 
         assert_eq!(result, None);
+        assert_eq!(diagnostics.num_errors(), 1);
+
+        // ent_t z4 = Mod(4;    (missing ")")
+        let kinds: Vec<TokenKind> = vec![Ident("z4".to_string()), Equals, 
+            Mod, LParen, IntLiteral(4), Semicolon, Eof];
+
+        let tokens: Vec<Token> = build_token_vec(kinds);
+
+        let mut diagnostics = Diagnostics::new();
+        let mut parser = Parser::new(tokens, &mut diagnostics);
+
+        let result = parser.parse_ent_t();
+
+        assert_eq!(result, None);
+        assert_eq!(diagnostics.num_errors(), 1);
+
+        // ent_t z4 Mod(4;    (missing "=", ")")
+        let kinds: Vec<TokenKind> = vec![Ident("z4".to_string()), 
+            Mod, LParen, IntLiteral(4), Semicolon, Eof];
+
+        let tokens: Vec<Token> = build_token_vec(kinds);
+
+        let mut diagnostics = Diagnostics::new();
+        let mut parser = Parser::new(tokens, &mut diagnostics);
+
+        let result = parser.parse_ent_t();
+
+        assert_eq!(result, None);
+        assert_eq!(diagnostics.num_errors(), 1);
     }
 }

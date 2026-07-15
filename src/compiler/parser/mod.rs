@@ -18,6 +18,7 @@ mod rel;
 mod net;
 mod expr;
 mod sync;
+mod statement;
 
 use crate::compiler::token::Token;
 use crate::compiler::diagnostics::Diagnostics;

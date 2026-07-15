@@ -23,22 +23,23 @@
 //! Author: Cole Francis
 
 use super::Parser;
+use super::sync::SyncRule;
 use crate::compiler::token::TokenKind;
 use crate::compiler::ast::*;
 
 impl<'a> Parser<'a> {
     // Rel_t token already consumed
     pub(super) fn parse_rel_t(&mut self) -> Option<RelType> {
-        let name = self.expect_ident()?;
+        let name = self.expect_ident(&SyncRule::Item)?;
 
-        self.expect(TokenKind::Colon)?;
+        self.expect(TokenKind::Colon, &SyncRule::Item)?;
 
-        self.expect(TokenKind::LParen)?;
+        self.expect(TokenKind::LParen, &SyncRule::Item)?;
 
         let mut params = Vec::new();
 
         while self.peek().kind != TokenKind::RParen {
-            params.push(self.parse_param()?);
+            params.push(self.parse_param(&SyncRule::Item)?);
 
             if self.peek().kind == TokenKind::Comma {
                 self.next();
@@ -47,13 +48,13 @@ impl<'a> Parser<'a> {
             }
         }
 
-        self.expect(TokenKind::RParen)?;
+        self.expect(TokenKind::RParen, &SyncRule::Item)?;
 
-        self.expect(TokenKind::Arrow)?;
+        self.expect(TokenKind::Arrow, &SyncRule::Item)?;
 
-        let return_type = self.parse_type()?;
+        let return_type = self.parse_type(&SyncRule::Item)?;
 
-        self.expect(TokenKind::Equals)?;
+        self.expect(TokenKind::Equals, &SyncRule::Item)?;
 
         // parse_block_expr returns Option, parse_expr always returns Expr even if its an Expr:Error
         let body = match self.peek().kind {
@@ -64,7 +65,7 @@ impl<'a> Parser<'a> {
             })),
         }?;
 
-        self.expect(TokenKind::Semicolon)?;
+        self.expect(TokenKind::Semicolon, &SyncRule::Item)?;
 
         Some(RelType {
             name,
@@ -76,7 +77,7 @@ impl<'a> Parser<'a> {
 
     // { not consumed
     fn parse_block_expr(&mut self) -> Option<BlockExpr> {
-        self.expect(TokenKind::LBrace)?;
+        self.expect(TokenKind::LBrace, &SyncRule::Item)?;
 
         let mut statements = Vec::new();
 
@@ -94,7 +95,7 @@ impl<'a> Parser<'a> {
             None => Expr::Error,
         };
 
-        self.expect(TokenKind::RBrace)?;
+        self.expect(TokenKind::RBrace, &SyncRule::Item)?;
 
         Some(BlockExpr {
             statements,
