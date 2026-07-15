@@ -105,62 +105,58 @@ impl<'a> Parser<'a> {
         token
     }
 
-    // TODO: add sync
     pub(super) fn expect(&mut self, expected: TokenKind, rule: &SyncRule)-> Option<()> {
-        let token = self.next();
+        let token = self.peek();
 
         if token.kind == expected {
-            return Some(());
+            self.next();
+            Some(())
         } else if token.kind == TokenKind::Eof {
             self.diagnostics.error(CompilerError::UnexpectedToken {
-                expected: vec![Expected::Ident],
+                expected: vec![Expected::Token(expected)],
                 found: TokenKind::Eof,
-                span: token.span,
+                span: token.span.clone(),
             });
-
-            return None;
+            None
         } else {
             self.diagnostics.error(CompilerError::UnexpectedToken {
-                expected: vec![Expected::Token(TokenKind::Equals)],
-                found: token.kind,
-                span: token.span,
+                expected: vec![Expected::Token(expected)],
+                found: token.kind.clone(),
+                span: token.span.clone(),
             });
             self.sync(rule);
-
-            return None;
+            None
         }
     }
 
-    // TODO: add sync
     pub(super) fn expect_ident(&mut self, rule: &SyncRule) -> Option<String> {
-        let token = self.next();
+        let token = self.peek();
 
-        match token.kind {
-            TokenKind::Ident(name) => Some(name),
+        match token.kind.clone() {
+            TokenKind::Ident(name) => {
+                self.next();
+                Some(name)
+            },
             TokenKind::Eof => {
                 self.diagnostics.error(CompilerError::UnexpectedToken {
                     expected: vec![Expected::Ident],
                     found: TokenKind::Eof,
-                    span: token.span,
+                    span: token.span.clone(),
                 });
-
                 None
-
             }
             other => {
                 self.diagnostics.error(CompilerError::UnexpectedToken {
                     expected: vec![Expected::Ident],
                     found: other,
-                    span: token.span,
+                    span: token.span.clone(),
                 });
                 self.sync(rule);
-
                 None
             }
         }
     }
     
-    // TODO: add sync
     pub(super) fn parse_type(&mut self, rule: &SyncRule) -> Option<Type> {
         let token = self.next();
         
@@ -326,100 +322,54 @@ mod tests {
             ],
         });
         assert!(!diagnostics.has_errors());
-
-        // let lexer = Lexer::new("
-        //     rel_t SYN: (in: Inpulse, weight: Real, last_pot: Real) -> Real = {
-        //         match in {
-        //             true => last_pot + weight,
-        //             _ => last_pot,
-        //         }
-        //     }
-
-        //     rel_t AXON: (pot: Real) -> Impulse = {
-        //         let thresh = 10;
-
-        //         match pot {
-        //             >= thresh => true,
-        //             _ => false,
-        //         }
-        //     }
-
-        //     rel_t BODY: (spike: Impulse, last_pot: Real) -> Real {
-        //         let refrac_pot = 0;
-        //         let tau = 0.1;
-
-        //         match spike {
-        //             true => refrac_pot,
-        //             _ => last_pot * (1 - tau),
-        //         }
-        //     }
-
-        //     net Neuron {
-        //         input in: Impulse;
-        //         output out: Impulse;
-
-        //         init weight: Real = 1.0;
-
-        //         /*               
-        //                                _________             ______
-        //                   in -------->|         |           | AXON |
-        //                               | SYNAPSE |---------->|______| ----------> out
-        //             weight = 1 ------>|_________|   |               |
-        //                                 ^        ___v__             |
-        //                                 |-------| BODY |<------------
-        //                                         |______|
-        //         */
-
-        //         next_pot := SYNAPSE(in, weight, curr_pot);
-
-        //         out := AXON(next_pot);
-
-        //         curr_pot := BODY(spike_out, next_pot);
-        //     }
-        // ");
     }
 
-    // #[test]
-    // fn multiple_errors() {
-    //     let mut diagnostics = Diagnostics::new();
-    //     let mut lexer = Lexer::new("
-    //         let n = 1;
-    //         n = 2;
-    //         let n = 3;
-    //         let 9n = 4;
-    //         let n = 5;
-    //         let n = 6
-    //         let n = 7;
-    //     ", &mut diagnostics);
-    //     let tokens: Vec<Token> = lexer.tokenize();
+    #[test]
+    fn multiple_errors() {
+        let mut diagnostics = Diagnostics::new();
+        let mut lexer = Lexer::new("
+            let n = 1;
+            n = 2;
+            let n = 3;
+            let 9n = 4;
+            let n = 5;
+            let n = 6
+            let n = 7;
+            let n = 8;
+        ", &mut diagnostics);
+        let tokens: Vec<Token> = lexer.tokenize();
 
-    //     let mut parser = Parser::new(tokens, &mut diagnostics);
+        let mut parser = Parser::new(tokens, &mut diagnostics);
 
-    //     let result = parser.parse();
+        let result = parser.parse();
 
-    //     assert_eq!(result, Program {
-    //         items: vec![
-    //             Item::Let(LetStatement {
-    //                 name: "n".to_string(),
-    //                 expr: Expr::Literal(Literal::Int(1)),
-    //             }),
-    //             Item::Error,
-    //             Item::Let(LetStatement {
-    //                 name: "n".to_string(),
-    //                 expr: Expr::Literal(Literal::Int(3)),
-    //             }),
-    //             Item::Error,
-    //             Item::Let(LetStatement {
-    //                 name: "n".to_string(),
-    //                 expr: Expr::Literal(Literal::Int(5)),
-    //             }),
-    //             Item::Error,
-    //             Item::Let(LetStatement {
-    //                 name: "n".to_string(),
-    //                 expr: Expr::Literal(Literal::Int(7)),
-    //             }),
-    //         ]
-    //     });
-    //     assert_eq!(diagnostics.num_errors(), 4);
-    // }
+        assert_eq!(result, Program {
+            items: vec![
+                Item::Let(LetStatement {
+                    name: "n".to_string(),
+                    expr: Expr::Literal(Literal::Int(1)),
+                }),
+                Item::Error,
+                Item::Let(LetStatement {
+                    name: "n".to_string(),
+                    expr: Expr::Literal(Literal::Int(3)),
+                }),
+                Item::Error,
+                Item::Let(LetStatement {
+                    name: "n".to_string(),
+                    expr: Expr::Literal(Literal::Int(5)),
+                }),
+                Item::Error,
+                Item::Let(LetStatement {
+                    name: "n".to_string(),
+                    expr: Expr::Literal(Literal::Int(7)),
+                }),
+                Item::Let(LetStatement {
+                    name: "n".to_string(),
+                    expr: Expr::Literal(Literal::Int(8)),
+                }),
+            ]
+        });
+        assert_eq!(diagnostics.num_errors(), 4);
+    }
 }

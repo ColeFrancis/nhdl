@@ -50,6 +50,14 @@ impl Diagnostics {
     pub fn errors(&self) -> &[CompilerError] {
         &self.errors
     }
+
+    pub fn debug_print(&self) {
+        println!("{} error(s):", self.errors.len());
+
+        for (i, error) in self.errors.iter().enumerate() {
+            println!("{}: {:#?}", i + 1, error);
+        }
+    }
 }
 
 #[derive(Debug)]

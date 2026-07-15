@@ -197,40 +197,68 @@ mod tests {
         }));
     }
 
-    // #[test]
-    // fn bad_rel_flip() {
-    //     // rel_t NUM : () -> Real = {
-    //     //     let p = 0.5
-    //     //     let q = 0.4;
+    #[test]
+    fn bad_rel() {
+        // rel_t NUM  () -> Real = {
+        //     let p = 0.5;
+        //     let q = 0.4;
         
-    //     //     p+q
-    //     // };
-    //     let kinds: Vec<TokenKind> = vec![Ident("FLIP".to_string()), Colon, LParen, RParen, Arrow, Bool, Equals, LBrace,
-    //         Let, Ident("p".to_string()), Equals, RealLiteral(0.5), Semicolon,
-    //         Sample, LBrace, Ident("p".to_string()), FatArrow, BoolLiteral(true), Comma,
-    //         Underscore, FatArrow, BoolLiteral(false), Comma, RBrace,
-    //         RBrace, Semicolon, Eof];
-    //     let tokens: Vec<Token> = build_token_vec(kinds);
+        //     p+q
+        // };
+        let kinds: Vec<TokenKind> = vec![Ident("NUM".to_string()), LParen, RParen, Arrow, Real, Equals, LBrace,
+            Let, Ident("p".to_string()), Equals, RealLiteral(0.5), Semicolon,
+            Let, Ident("q".to_string()), Equals, RealLiteral(0.4), Semicolon,
+            Ident("p".to_string()), Plus, Ident("q".to_string()),// Minus,
+            RBrace, Semicolon, Eof];
+        let tokens: Vec<Token> = build_token_vec(kinds);
 
-    //     let mut diagnostics = Diagnostics::new();
-    //     let mut parser = Parser::new(tokens, &mut diagnostics);
+        let mut diagnostics = Diagnostics::new();
+        let mut parser = Parser::new(tokens, &mut diagnostics);
 
-    //     let result = parser.parse_rel_t();
+        let result = parser.parse_rel_t();
 
-    //     assert_eq!(result, Some(RelType {
-    //         name: "NUM".to_string(),
-    //         params: vec![],
-    //         return_type: Type::Real,
-    //         body: RelBody::Block(BlockExpr {
-    //             statements: vec![
-    //                 Statement::Error,
-    //                 Statement::Let(LetStatement {
-    //                     name: "q".to_string(),
-    //                     expr: Expr::Literal(Literal::Real(0.4)),
-    //                 })
-    //             ],
-    //             expr: Expr::Error,
-    //         }),
-    //     }));
-    // }
+        assert_eq!(result, None);
+        assert_eq!(diagnostics.num_errors(), 1);
+
+        // rel_t NUM : () -> Real = {
+        //     let p = 0.5
+        //     let q = 0.4;
+        
+        //     p+q
+        // };
+        let kinds: Vec<TokenKind> = vec![Ident("NUM".to_string()), Colon, LParen, RParen, Arrow, Real, Equals, LBrace,
+            Let, Ident("p".to_string()), Equals, RealLiteral(0.5),
+            Let, Ident("q".to_string()), Equals, RealLiteral(0.4), Semicolon,
+            Ident("p".to_string()), Plus, Ident("q".to_string()),
+            RBrace, Semicolon, Eof];
+        let tokens: Vec<Token> = build_token_vec(kinds);
+
+        let mut diagnostics = Diagnostics::new();
+        let mut parser = Parser::new(tokens, &mut diagnostics);
+
+        let result = parser.parse_rel_t();
+
+        diagnostics.debug_print();
+
+        assert_eq!(result, Some(RelType {
+            name: "NUM".to_string(),
+            params: vec![],
+            return_type: Type::Real,
+            body: RelBody::Block(BlockExpr {
+                statements: vec![
+                    Statement::Error,
+                    Statement::Let(LetStatement {
+                        name: "q".to_string(),
+                        expr: Expr::Literal(Literal::Real(0.4)),
+                    })
+                ],
+                expr: Expr::Binary(BinaryExpr {
+                    left: Box::new(Expr::Ident("p".to_string())),
+                    op: BinaryOp::Add,
+                    right: Box::new(Expr::Ident("q".to_string()))
+                }),
+            }),
+        }));
+        assert_eq!(diagnostics.num_errors(), 1);
+    }
 }

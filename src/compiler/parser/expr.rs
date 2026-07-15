@@ -109,7 +109,7 @@ impl<'a> Parser<'a> {
                             elements.push(self.parse_expr(0)?);
                         }
             
-                        self.expect(TokenKind::RParen, &SyncRule::Expr)?;
+                        self.expect(TokenKind::RParen, &SyncRule::Expr {depth: 0})?;
                         Some(Expr::Tuple(elements))
                     }
             
@@ -123,7 +123,7 @@ impl<'a> Parser<'a> {
                             span: token.span,
                         });
 
-                        self.sync(&SyncRule::Expr);
+                        self.sync(&SyncRule::Expr {depth: 0});
 
                         None
                     }
@@ -150,7 +150,7 @@ impl<'a> Parser<'a> {
                     span: token.span,
                 });
 
-                self.sync(&SyncRule::Expr);
+                self.sync(&SyncRule::Expr {depth: 0});
 
                 None
             }
@@ -176,7 +176,7 @@ impl<'a> Parser<'a> {
     fn parse_match(&mut self) -> Option<Expr> {
         let scrutinee = self.parse_expr(0)?;
 
-        self.expect(TokenKind::LBrace, &SyncRule::Expr)?;
+        self.expect(TokenKind::LBrace, &SyncRule::Expr {depth: 0})?;
 
         let mut arms = Vec::new();
 
@@ -190,7 +190,7 @@ impl<'a> Parser<'a> {
             }
         }
 
-        self.expect(TokenKind::RBrace, &SyncRule::Expr)?;
+        self.expect(TokenKind::RBrace, &SyncRule::Expr {depth: 0})?;
 
         Some(Expr::Match(MatchExpr {
             scrutinee: Box::new(scrutinee),
@@ -201,7 +201,7 @@ impl<'a> Parser<'a> {
     fn parse_match_arm(&mut self) -> Option<MatchArm> {
         let pattern = self.parse_pattern()?;
 
-        self.expect(TokenKind::FatArrow, &SyncRule::Expr)?;
+        self.expect(TokenKind::FatArrow, &SyncRule::Expr {depth: 1})?;
 
         let expr = match self.parse_expr(0) {
             Some(expr) => expr,
@@ -262,7 +262,7 @@ impl<'a> Parser<'a> {
                     span: token.span,
                 });
 
-                self.sync(&SyncRule::Expr);
+                self.sync(&SyncRule::Expr {depth: 1});
 
                 None
             }
@@ -272,7 +272,7 @@ impl<'a> Parser<'a> {
     fn parse_tuple_pattern(&mut self) -> Option<SimplePattern> {
         let mut items = vec![self.parse_simple_pattern()?];
 
-        self.expect(TokenKind::Comma, &SyncRule::Expr)?;
+        self.expect(TokenKind::Comma, &SyncRule::Expr {depth: 1})?;
 
         items.push(self.parse_simple_pattern()?);
 
@@ -281,7 +281,7 @@ impl<'a> Parser<'a> {
             items.push(self.parse_simple_pattern()?);
         }
 
-        self.expect(TokenKind::RParen, &SyncRule::Expr)?;
+        self.expect(TokenKind::RParen, &SyncRule::Expr {depth: 1})?;
 
         Some(SimplePattern::Tuple(items))
     }
@@ -297,7 +297,7 @@ impl<'a> Parser<'a> {
 
     // Sample token already consumed
     fn parse_sample(&mut self) -> Option<Expr> {
-        self.expect(TokenKind::LBrace, &SyncRule::Expr)?;
+        self.expect(TokenKind::LBrace, &SyncRule::Expr {depth: 0})?;
 
         let mut arms = Vec::new();
 
@@ -311,7 +311,7 @@ impl<'a> Parser<'a> {
             }
         }
 
-        self.expect(TokenKind::RBrace, &SyncRule::Expr)?;
+        self.expect(TokenKind::RBrace, &SyncRule::Expr {depth: 0})?;
 
         Some(Expr::Sample(arms))
     }
@@ -328,7 +328,7 @@ impl<'a> Parser<'a> {
             }),
         };
 
-        self.expect(TokenKind::FatArrow, &SyncRule::Expr)?;
+        self.expect(TokenKind::FatArrow, &SyncRule::Expr {depth: 1})?;
 
         let expr = match self.parse_expr(0) {
             Some(expr) => expr,
@@ -534,7 +534,7 @@ mod tests {
     }
 
     #[test]
-    fn test_literal_and_ident_expr() {
+    fn literal_and_ident_expr() {
         let kinds: Vec<TokenKind> = vec![IntLiteral(3), Eof];
         let tokens: Vec<Token> = build_token_vec(kinds);
 
@@ -557,7 +557,7 @@ mod tests {
     }
     
     #[test]
-    fn test_unary_expr() {
+    fn unary_expr() {
         // ---6
         let kinds: Vec<TokenKind> = vec![Minus, Minus, Minus, IntLiteral(6), Eof];
         let tokens: Vec<Token> = build_token_vec(kinds);
@@ -573,7 +573,7 @@ mod tests {
     }
 
     #[test]
-    fn test_binary_expr() {
+    fn binary_expr() {
         // -5 + 2 * a + b
         let kinds: Vec<TokenKind> = vec![Minus, IntLiteral(5), Plus, 
             IntLiteral(2), Asterisk, Ident("a".to_string()), Plus, 
@@ -621,7 +621,7 @@ mod tests {
     }
     
     #[test]
-    fn test_tuple_expr() {
+    fn tuple_expr() {
         // (1, 1+5, 3)
         let kinds: Vec<TokenKind> = vec![LParen, IntLiteral(1), Comma, 
             IntLiteral(1), Plus, IntLiteral(5), Comma,
@@ -654,7 +654,7 @@ mod tests {
     }
 
     #[test]
-    fn test_match() {
+    fn match_expr() {
         // match a {
         //     1 => 1+a,
         //     _ => a,
@@ -698,7 +698,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sample() {
+    fn sample_expr() {
         // sample {
         //     0.5 => 1,
         //     _ => 0,
@@ -748,5 +748,155 @@ mod tests {
         let result_str: String = build_s_expr(&result);
 
         assert_eq!(result_str, "(match coin (arm H (sample (arm 0.1 H) (arm _ T))) (arm T (sample (arm 0.8 H) (arm _ T))))".to_string());
+
+        // sample {}
+        let kinds: Vec<TokenKind> = vec![Sample, LBrace, RBrace, Eof];
+        let tokens: Vec<Token> = build_token_vec(kinds);
+
+        let mut diagnostics = Diagnostics::new();
+        let mut parser = Parser::new(tokens, &mut diagnostics);
+
+        let result = parser.parse_expr(0);
+
+        assert_eq!(result, Some(Expr::Sample(vec![])));
+
+        // sample {
+        //     a => sample {
+        //        a => b        // no fat arrow
+        //     },
+        //     _ => c
+        // }
+        let kinds: Vec<TokenKind> = vec![Sample, LBrace,
+            Ident("a".to_string()), FatArrow, Sample, LBrace, 
+                Ident("a".to_string()), FatArrow, Ident("b".to_string()),
+            RBrace, Comma,
+            Underscore, FatArrow, Ident("c".to_string()), Comma,
+            RBrace, Eof];
+        let tokens: Vec<Token> = build_token_vec(kinds);
+
+        let mut diagnostics = Diagnostics::new();
+        let mut parser = Parser::new(tokens, &mut diagnostics);
+
+        let result = parser.parse_expr(0);
+
+        diagnostics.debug_print();
+
+        assert_eq!(result, Some(Expr::Sample(vec![
+            SampleArm {
+                prob: Prob::Expr(Expr::Ident("a".to_string())),
+                expr: Expr::Sample(vec![SampleArm {
+                    prob: Prob::Expr(Expr::Ident("a".to_string())),
+                    expr: Expr::Ident("b".to_string()),
+                }]),
+            },
+            SampleArm {
+                prob: Prob::Default,
+                expr: Expr::Ident("c".to_string()),
+            },
+        ])));
+    }
+
+    #[test]
+    fn bad_expr() {
+        // @b
+        let kinds: Vec<TokenKind> = vec![ErrorToken, Ident("b".to_string()), Eof];
+        let tokens: Vec<Token> = build_token_vec(kinds);
+
+        let mut diagnostics = Diagnostics::new();
+        let mut parser = Parser::new(tokens, &mut diagnostics);
+
+        let result = parser.parse_expr(0);
+
+        assert_eq!(result, None);
+        assert_eq!(diagnostics.num_errors(), 1);
+    }
+
+    #[test]
+    fn bad_sample_expr() {
+        // sample {
+        //     b 1,  // no fat arrow
+        //     _ c,  // no fat arrow
+        // }
+        let kinds: Vec<TokenKind> = vec![Sample, LBrace,
+            Ident("b".to_string()), IntLiteral(1), Comma,
+            Underscore, Ident("c".to_string()), Comma,
+            RBrace, Eof];
+        let tokens: Vec<Token> = build_token_vec(kinds);
+
+        let mut diagnostics = Diagnostics::new();
+        let mut parser = Parser::new(tokens, &mut diagnostics);
+
+        let result = parser.parse_expr(0);
+
+        assert_eq!(result, None);
+        assert_eq!(diagnostics.num_errors(), 1);
+
+        // sample {
+        //     b => 1   // no comma
+        //     _ => c
+        // }
+        let kinds: Vec<TokenKind> = vec![Sample, LBrace,
+            Ident("b".to_string()), FatArrow, IntLiteral(1),
+            Underscore, FatArrow, Ident("c".to_string()), 
+            RBrace];
+        let tokens: Vec<Token> = build_token_vec(kinds);
+
+        let mut diagnostics = Diagnostics::new();
+        let mut parser = Parser::new(tokens, &mut diagnostics);
+
+        let result = parser.parse_expr(0);
+
+        assert_eq!(result, None);
+        assert_eq!(diagnostics.num_errors(), 1);
+
+        // sample {
+        //     a => sample {, // No closing brace causes last } to be mistaken for the second samples closing.
+        //     _ => c
+        // }
+        let kinds: Vec<TokenKind> = vec![Sample, LBrace,
+            Ident("a".to_string()), FatArrow, Sample, LBrace, Comma,
+            Underscore, FatArrow, Ident("c".to_string()), Comma,
+            RBrace, Eof];
+        let tokens: Vec<Token> = build_token_vec(kinds);
+
+        let mut diagnostics = Diagnostics::new();
+        let mut parser = Parser::new(tokens, &mut diagnostics);
+
+        let result = parser.parse_expr(0);
+
+        assert_eq!(result, None);
+
+        // sample {
+        //     a => sample {
+        //        a b        // no fat arrow
+        //     },
+        //     _ => c
+        // }
+        let kinds: Vec<TokenKind> = vec![Sample, LBrace,
+            Ident("a".to_string()), FatArrow, Sample, LBrace, 
+                Ident("a".to_string()), Ident("b".to_string()),
+            RBrace, Comma,
+            Underscore, FatArrow, Ident("c".to_string()), Comma,
+            RBrace, Eof];
+        let tokens: Vec<Token> = build_token_vec(kinds);
+
+        let mut diagnostics = Diagnostics::new();
+        let mut parser = Parser::new(tokens, &mut diagnostics);
+
+        let result = parser.parse_expr(0);
+
+        diagnostics.debug_print();
+
+        assert_eq!(result, Some(Expr::Sample(vec![
+            SampleArm {
+                prob: Prob::Expr(Expr::Ident("a".to_string())),
+                expr: Expr::Error,
+            },
+            SampleArm {
+                prob: Prob::Default,
+                expr: Expr::Ident("c".to_string()),
+            },
+        ])));
+        assert_eq!(diagnostics.num_errors(), 1);
     }
 }

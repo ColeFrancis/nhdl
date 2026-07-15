@@ -30,7 +30,9 @@ pub enum SyncRule {
     Item, // top level
     Inst, // inside net_t
     Statement,
-    Expr,
+    Expr {
+        depth: usize
+    },
 }
 
 impl<'a> Parser<'a> {
@@ -45,71 +47,10 @@ impl<'a> Parser<'a> {
 
             &SyncRule::Statement => self.sync_statement(),
 
-            &SyncRule::Expr => self.sync_expr(),
+            &SyncRule::Expr {depth} => self.sync_expr(depth),
         }
     }
 
-    /*
-    ???
-    let x = 1;
-
-    let x = 5;
-    ???
-    let y = 6;
-
-    foo bar baz;
-    ent Bool = Bool;
-
-    let x = 5
-    let y = 10;
-
-    let = 5;
-    let x = 6;
-
-    let x 5;
-    let y = 2;
-
-    ent_t Foo =
-    rel_t Add:() -> Int = 0;
-
-    rel_t Add(a : Int) -> Int = 0;
-    let x = 1;
-
-    rel_t Add:(a Int) -> Int = 0;
-    ent_t X = Bool;
-
-    rel_t Add(a : Int) -> Int = {
-        let x = 1;
-        x
-    };
-    ent_t X = Bool;
-
-    rel_t Add:(a: Int )-> Int = {
-        let x = 1;
-        x
-    }
-    ent_t X = Bool;
-
-    rel_t Foo:()-> Int = {
-        let x=1;
-        x
-    let y = 5;
-
-    rel_t Foo:()->Int =
-        let x = 1;
-        x
-    }
-    let y = 5;
-    
-    let = ;
-    ent_t ;
-    rel_t ;
-    let x = 1;
-
-    ?????
-
-
-    */
     fn sync_item(&mut self) {
         let mut depth = 0;
         loop {
@@ -213,8 +154,8 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn sync_expr(&mut self) {
-        let mut depth = 0;
+    // Passing in depth allows for proper recovery from inside of sample {} and match {} brackets
+    fn sync_expr(&mut self, mut depth: usize) {
         loop {
             match self.peek().kind {
                 TokenKind::Eof => break,
