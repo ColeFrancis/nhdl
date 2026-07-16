@@ -198,8 +198,8 @@ mod tests {
     }
 
     #[test]
-    fn bad_rel() {
-        // rel_t NUM  () -> Real = {
+    fn bad_rel_1() {
+        // rel_t NUM  () -> Real = {  // missing colon
         //     let p = 0.5;
         //     let q = 0.4;
         
@@ -219,9 +219,12 @@ mod tests {
 
         assert_eq!(result, None);
         assert_eq!(diagnostics.num_errors(), 1);
+    }
 
+    #[test]
+    fn bad_rel_2() {
         // rel_t NUM : () -> Real = {
-        //     let p = 0.5
+        //     let p = 0.5     // missing semicolon
         //     let q = 0.4;
         
         //     p+q
@@ -259,6 +262,94 @@ mod tests {
                 }),
             }),
         }));
+        assert_eq!(diagnostics.num_errors(), 1);
+    }
+
+    #[test]
+    fn bad_rel_3() {
+        // rel_t NUM : () -> Real = {
+        //     let p = 0.5;
+        //     let q = 0.4; 
+        // }; // missing expr
+        let kinds: Vec<TokenKind> = vec![Ident("NUM".to_string()), Colon, LParen, RParen, Arrow, Real, Equals, LBrace,
+            Let, Ident("p".to_string()), Equals, RealLiteral(0.5), Semicolon,
+            Let, Ident("q".to_string()), Equals, RealLiteral(0.4), Semicolon,
+            RBrace, Semicolon, Eof];
+        let tokens: Vec<Token> = build_token_vec(kinds);
+
+        let mut diagnostics = Diagnostics::new();
+        let mut parser = Parser::new(tokens, &mut diagnostics);
+
+        let result = parser.parse_rel_t();
+
+        diagnostics.debug_print();
+
+        assert_eq!(result, Some(RelType {
+            name: "NUM".to_string(),
+            params: vec![],
+            return_type: Type::Real,
+            body: RelBody::Block(BlockExpr {
+                statements: vec![
+                    Statement::Let(LetStatement {
+                        name: "p".to_string(),
+                        expr: Expr::Literal(Literal::Real(0.5)),
+                    }),
+                    Statement::Let(LetStatement {
+                        name: "q".to_string(),
+                        expr: Expr::Literal(Literal::Real(0.4)),
+                    }),
+                ],
+                expr: Expr::Error,
+            }),
+        }));
+        assert_eq!(diagnostics.num_errors(), 1);
+    }
+
+    #[test]
+    fn bad_rel_4() {
+        // rel_t NUM : () -> Real = {
+        //     let p = 0.5;
+        //     let q = 0.4;
+        
+        //     p+q
+        // // missing semicolon
+        let kinds: Vec<TokenKind> = vec![Ident("NUM".to_string()), Colon, LParen, RParen, Arrow, Real, Equals, LBrace,
+            Let, Ident("p".to_string()), Equals, RealLiteral(0.5), Semicolon,
+            Let, Ident("q".to_string()), Equals, RealLiteral(0.4), Semicolon,
+            Ident("p".to_string()), Plus, Ident("q".to_string()),// Minus,
+            RBrace, Eof];
+        let tokens: Vec<Token> = build_token_vec(kinds);
+
+        let mut diagnostics = Diagnostics::new();
+        let mut parser = Parser::new(tokens, &mut diagnostics);
+
+        let result = parser.parse_rel_t();
+
+        assert_eq!(result, None);
+        assert_eq!(diagnostics.num_errors(), 1);
+    }
+
+    #[test]
+    fn bad_rel_5() {
+        // rel_t NUM : () -> Real = {
+        //     let p = 0.5;
+        //     let q = 0.4;
+        
+        //     p+q
+        // // missing closing brace
+        let kinds: Vec<TokenKind> = vec![Ident("NUM".to_string()), Colon, LParen, RParen, Arrow, Real, Equals, LBrace,
+            Let, Ident("p".to_string()), Equals, RealLiteral(0.5), Semicolon,
+            Let, Ident("q".to_string()), Equals, RealLiteral(0.4), Semicolon,
+            Ident("p".to_string()), Plus, Ident("q".to_string()),// Minus,
+            Eof];
+        let tokens: Vec<Token> = build_token_vec(kinds);
+
+        let mut diagnostics = Diagnostics::new();
+        let mut parser = Parser::new(tokens, &mut diagnostics);
+
+        let result = parser.parse_rel_t();
+
+        assert_eq!(result, None);
         assert_eq!(diagnostics.num_errors(), 1);
     }
 }

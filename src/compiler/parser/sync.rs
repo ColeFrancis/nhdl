@@ -171,6 +171,7 @@ impl<'a> Parser<'a> {
                 }
         
                 TokenKind::Semicolon if depth == 0 => break,
+                TokenKind::Comma if depth == 0 => break,
 
                 _ => (),
             }

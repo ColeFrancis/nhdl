@@ -138,7 +138,7 @@ mod tests {
     }
 
     #[test]
-    fn bad_mod_ent() {
+    fn bad_mod_ent_1() {
         // ent_t z4 = mod(4);    (should be Mod not mod)
         let kinds: Vec<TokenKind> = vec![Ident("z4".to_string()), Equals, 
             Ident("mod".to_string()), LParen, IntLiteral(4), RParen, Semicolon, Eof];
@@ -152,7 +152,10 @@ mod tests {
 
         assert_eq!(result, None);
         assert_eq!(diagnostics.num_errors(), 1);
+    }
 
+    #[test]
+    fn bad_mod_ent_2() {
         // ent_t z4 = Mod(4;    (missing ")")
         let kinds: Vec<TokenKind> = vec![Ident("z4".to_string()), Equals, 
             Mod, LParen, IntLiteral(4), Semicolon, Eof];
@@ -166,10 +169,29 @@ mod tests {
 
         assert_eq!(result, None);
         assert_eq!(diagnostics.num_errors(), 1);
+    }
 
+    #[test]
+    fn bad_mod_ent_3() {
         // ent_t z4 Mod(4;    (missing "=", ")")
         let kinds: Vec<TokenKind> = vec![Ident("z4".to_string()), 
             Mod, LParen, IntLiteral(4), Semicolon, Eof];
+
+        let tokens: Vec<Token> = build_token_vec(kinds);
+
+        let mut diagnostics = Diagnostics::new();
+        let mut parser = Parser::new(tokens, &mut diagnostics);
+
+        let result = parser.parse_ent_t();
+
+        assert_eq!(result, None);
+        assert_eq!(diagnostics.num_errors(), 1);
+    }
+
+    fn bad_real_ent() {
+        // ent_t r = real;    real, not Real
+        let kinds: Vec<TokenKind> = vec![Ident("r".to_string()), 
+            Equals, Ident("real".to_string())];
 
         let tokens: Vec<Token> = build_token_vec(kinds);
 
