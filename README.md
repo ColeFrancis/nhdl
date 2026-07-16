@@ -1,6 +1,6 @@
 Language Of Interaction (LOI). Research platform for the purpose of understanding the emergence of computation in complex systems.
 
-# Structures ti analyze
+# Structures to analyze
 
 - emergence of computation from nand gates
 - spiking. networks including atomata and neurons (deterministic and probabilistic)
