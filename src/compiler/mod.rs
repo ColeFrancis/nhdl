@@ -14,5 +14,5 @@
 
 mod lexer;
 mod parser;
-mod sem_analyzer
+mod sem_analyzer;
 mod diagnostics;
