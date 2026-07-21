@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! # error
+//! # diagnostics
 //!
 //! Defines error types from the lexer, parser, and semantic analysis
 //!
 //! ## Invariants
 //!
-//! - All compiler errors will be found in here
+//! - All compiler errors will be defined in the CompilerError enum
 //!
 //! Author: Cole Francis
 
