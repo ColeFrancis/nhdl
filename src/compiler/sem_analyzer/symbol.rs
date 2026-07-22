@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! # core
+//! # symbol
 //!
-//! Handles the core of the semantic analyzer
+//! Holds the structures used in creating the symbol table
 //!
 //! ## Invariants
 //!
@@ -22,19 +22,25 @@
 //!
 //! Author: Cole Francis
 
-super::SemAnalyzer;
-use crate::compiler::parser::ast::Program;
+use crate::compiler::diagnostics::Span;
 
-impl <'a> SemAnalyzer<'a> {
-    pub fn new(ast: Program, diagnostics: &'a mut Diagnostics) -> Self {
-        Self {
-            ast,
-            diagnostics,
-        }
-    }
+type SymbolId = usize;
 
-    // Name resolution (Sybmol table, scopes)
-    //
-    // Type checking (determine type of every expression, check types, insert implicit conversions)
-    // additional validation (duplicate definitions, other language specific stuff)
+pub enum SymbolKind {
+    Variable,
+    Parameter,
+    Ent_t,
+    Rel_t,
+    Net,
+}
+
+struct Symbol {
+    id: SymbolId,   // index in Vec<Symbol>
+    name: String,
+    kind: SymbolKind,
+
+    span: Span,
+
+    // filled in by later passes
+    // ty: Option<TypeId>
 }

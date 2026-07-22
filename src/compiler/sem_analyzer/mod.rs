@@ -14,11 +14,21 @@
 
 pub mod ann_ast;
 mod core;
+mod symbol;
+mod scope;
 
-use crate::compiler::parser::ast::Program;
+use super::symbol::{Symbol, SymbolKind};
+use super::scope::{Scope, ScopeId};
+use super::ann_ast;
+use crate::compiler::parser::ast;
 use crate::compiler::diagnostics::Diagnostics;
 
 pub struct SemAnalyzer<'a> {
-    ast: Program,
+    ast: ast::Program,
+    ann_ast: ann_ast::Program,
+    symbols: Vec<Symbol>,
+    scopes: Vec<Scope>,
+    current_scope: ScopeId,
+
     diagnostics: &'a mut Diagnostics,
 }
