@@ -15,8 +15,10 @@
 pub mod ann_ast;
 mod core;
 
+use crate::compiler::parser::ast::Program;
 use crate::compiler::diagnostics::Diagnostics;
 
 pub struct SemAnalyzer<'a> {
+    ast: Program,
     diagnostics: &'a mut Diagnostics,
 }

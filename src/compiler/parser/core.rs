@@ -36,7 +36,7 @@ impl<'a> Parser<'a> {
         Self {
             tokens,
             current: 0,
-            diagnostics
+            diagnostics,
         }
     }
 

@@ -11,3 +11,25 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+//! # core
+//!
+//! Handles the core of the semantic analyzer
+//!
+//! ## Invariants
+//!
+//! - 
+//!
+//! Author: Cole Francis
+
+super::SemAnalyzer;
+use crate::compiler::parser::ast::Program;
+
+impl <'a> SemAnalyzer<'a> {
+    pub fn new(ast: Program, diagnostics: &'a mut Diagnostics) -> Self {
+        Self {
+            ast,
+            diagnostics,
+        }
+    }
+}

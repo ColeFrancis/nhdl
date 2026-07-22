@@ -11,3 +11,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+//! # ann_ast
+//!
+//! Holds the structures used in creating the annotated ast
+//!
+//! ## Invariants
+//!
+//! - Grammar shall be obeyed. It is the source of truth.
+//!
+//! Author: Cole Francis
