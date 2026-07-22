@@ -22,7 +22,7 @@
 //!
 //! Author: Cole Francis
 
-super::SemAnalyzer;
+use super::SemAnalyzer;
 use crate::compiler::parser::ast::Program;
 
 impl <'a> SemAnalyzer<'a> {
