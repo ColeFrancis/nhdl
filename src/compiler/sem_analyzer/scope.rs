@@ -25,7 +25,7 @@
 use std::collections::HashMap;
 use super::symbol::SymbolId;
 
-type ScopeId = usize;
+pub type ScopeId = usize;
 
 struct Scope {
     parent: Option<ScopeId>,
