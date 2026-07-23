@@ -25,8 +25,8 @@
 use super::SemAnalyzer;
 use crate::compiler::parser::ast;
 use crate::compiler::sem_analyzer::ann_ast;
-use crate::compiler::diagnostics::{Diagnostics};
-use crate::compiler::sem_analyzer::symbol::{Symbol};
+use crate::compiler::diagnostics::Diagnostics;
+use crate::compiler::sem_analyzer::symbol::{Symbol, SymbolId};
 
 impl <'a> SemAnalyzer<'a> {
     pub fn new(diagnostics: &'a mut Diagnostics) -> Self {
@@ -45,5 +45,85 @@ impl <'a> SemAnalyzer<'a> {
         self.fold_const();
 
         (self.ann_ast, self.symbols)
+    }
+
+    pub fn lookup_symbol(&self, name: &str) -> Option<SymbolId> {
+        let mut scope = self.current_scope;
+
+        loop {
+            let s = &self.scopes[scope];
+
+            if let Some(id) = s.symbols.get(name) {
+                return Some(*id);
+            }
+
+            match s.parent {
+                Some(parent) => scope = parent,
+                None => return None,
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+    use crate::compiler::sem_analyzer::scope::Scope;
+    use crate::compiler::sem_analyzer::symbol::SymbolKind;
+    use crate::compiler::diagnostics::Span;
+
+    #[test]
+    fn test_lookup() {
+        let sem_analyzer = SemAnalyzer {
+            ann_ast: ann_ast::Program {items: Vec::new()},
+            symbols: vec![
+                Symbol {
+                    id: 0,
+                    name: "a".to_string(),
+                    kind: SymbolKind::Variable,
+                    span: Span{line: 0, col: 0},
+                },
+                Symbol {
+                    id: 1,
+                    name: "b".to_string(),
+                    kind: SymbolKind::Variable,
+                    span: Span{line: 0, col: 0},
+                },
+                Symbol {
+                    id: 2,
+                    name: "c".to_string(),
+                    kind: SymbolKind::Variable,
+                    span: Span{line: 0, col: 0},
+                },
+            ],
+            scopes: vec![
+                Scope {
+                    parent: None,
+                    symbols: HashMap::from([
+                        ("a".to_string(), 0),
+                    ])
+                },
+                Scope {
+                    parent: Some(0),
+                    symbols: HashMap::from([
+                        ("b".to_string(), 1),
+                    ])
+                },
+                Scope {
+                    parent: Some(1),
+                    symbols: HashMap::from([
+                        ("c".to_string(), 1),
+                    ])
+                },
+            ],
+            current_scope: 1,
+
+            diagnostics: &mut Diagnostics::new(),
+        };
+
+        assert_eq!(sem_analyzer.lookup_symbol("a"), Some(0));
+        assert_eq!(sem_analyzer.lookup_symbol("b"), Some(1));
+        assert_eq!(sem_analyzer.lookup_symbol("c"), None);
     }
 }

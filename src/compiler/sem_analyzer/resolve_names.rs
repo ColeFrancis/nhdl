@@ -25,7 +25,8 @@
 use super::SemAnalyzer;
 use crate::compiler::parser::ast;
 use super::ann_ast;
-use super::symbol::SymbolKind;
+use crate::compiler::diagnostics::CompilerError;
+use super::symbol::{Symbol, SymbolKind, SymbolId};
 
 // TEMPORARY
 use crate::compiler::diagnostics::Span;
@@ -102,23 +103,6 @@ impl <'a> SemAnalyzer<'a> {
     //     Some(ann_ast::Expr::Error)
     // }
 
-    pub fn lookup_symbol(&self, name: &str) -> Option<SymbolId> {
-        let mut scope = self.current_scope;
-
-        loop {
-            let s = &self.scopes[scope];
-
-            if let Some(id) = s.symbols.get(name) {
-                return Some(*id);
-            }
-
-            match s.parent {
-                Some(parent) => scope = parent,
-                None => return None,
-            }
-        }
-    }
-
     pub fn define_symbol(&mut self, name: String, kind: SymbolKind, span: Span) -> Option<SymbolId> {
         // No duplicate definitions
         if self.scopes[self.current_scope].symbols.contains_key(&name) {
@@ -149,53 +133,12 @@ impl <'a> SemAnalyzer<'a> {
 mod tests {
     use super::*;
     use std::collections::HashMap;
+    use crate::compiler::diagnostics::Diagnostics;
     use crate::compiler::sem_analyzer::scope::Scope;
 
     #[test]
-    fn test_lookup() {
-        let sem_analyzer = SemAnalyzer {
-            ann_ast: ann_ast::Program {items: Vec::new()},
-            symbols: vec![
-                Symbol {
-                    id: 0,
-                    name: "a".to_string(),
-                    kind: SymbolKind::Variable,
-                    span: Span{line: 0, col: 0},
-                },
-                Symbol {
-                    id: 1,
-                    name: "b".to_string(),
-                    kind: SymbolKind::Variable,
-                    span: Span{line: 0, col: 0},
-                }
-            ],
-            scopes: vec![
-                Scope {
-                    parent: None,
-                    symbols: HashMap::from([
-                        ("a".to_string(), 0),
-                    ])
-                },
-                Scope {
-                    parent: Some(0),
-                    symbols: HashMap::from([
-                        ("b".to_string(), 1),
-                    ])
-                }
-            ],
-            current_scope: 1,
-
-            diagnostics: &mut Diagnostics::new(),
-        };
-
-        assert_eq!(sem_analyzer.lookup_symbol("a"), Some(0));
-        assert_eq!(sem_analyzer.lookup_symbol("b"), Some(1));
-        assert_eq!(sem_analyzer.lookup_symbol("c"), None);
-    }
-
-    #[test]
     fn test_define_1() {
-        let sem_analyzer = SemAnalyzer {
+        let mut sem_analyzer = SemAnalyzer {
             ann_ast: ann_ast::Program {items: Vec::new()},
             symbols: vec![
                 Symbol {
