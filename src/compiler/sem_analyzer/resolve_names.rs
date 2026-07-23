@@ -212,4 +212,75 @@ mod tests {
             }
         ]);
     }
+    
+    #[test]
+    fn test_define_2() {
+        let mut sem_analyzer = SemAnalyzer {
+            ann_ast: ann_ast::Program {items: Vec::new()},
+            symbols: vec![
+                Symbol {
+                    id: 0,
+                    name: "a".to_string(),
+                    kind: SymbolKind::Variable,
+                    span: Span{line: 0, col: 0},
+                },
+                Symbol {
+                    id: 1,
+                    name: "b".to_string(),
+                    kind: SymbolKind::Variable,
+                    span: Span{line: 0, col: 0},
+                }
+            ],
+            scopes: vec![
+                Scope {
+                    parent: None,
+                    symbols: HashMap::from([
+                        ("a".to_string(), 0),
+                    ])
+                },
+                Scope {
+                    parent: Some(0),
+                    symbols: HashMap::from([
+                        ("b".to_string(), 1),
+                    ])
+                }
+            ],
+            current_scope: 0,
+
+            diagnostics: &mut Diagnostics::new(),
+        };
+
+        let result = sem_analyzer.define_symbol("a".to_string(), SymbolKind::Variable, Span{line:0,col:0});
+
+        assert_eq!(result, None);
+        assert!(sem_analyzer.disgnostics.has_errors));
+        assert_eq!(sem_analyzer.symbols, vec![
+            Symbol {
+                id: 0,
+                name: "a".to_string(),
+                kind: SymbolKind::Variable,
+                span: Span{line: 0, col: 0},
+            },
+            Symbol {
+                id: 1,
+                name: "b".to_string(),
+                kind: SymbolKind::Variable,
+                span: Span{line: 0, col: 0},
+            },
+        ]);
+        assert_eq!(sem_analyzer.scopes, vec![
+            Scope {
+                parent: None,
+                symbols: HashMap::from([
+                    ("a".to_string(), 0),
+                ])
+            },
+            Scope {
+                parent: Some(0),
+                symbols: HashMap::from([
+                    ("b".to_string(), 1),
+                ])
+            }
+        ]);
+    }
 }
