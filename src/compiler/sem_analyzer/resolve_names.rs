@@ -253,7 +253,7 @@ mod tests {
         let result = sem_analyzer.define_symbol("a".to_string(), SymbolKind::Variable, Span{line:0,col:0});
 
         assert_eq!(result, None);
-        assert!(sem_analyzer.disgnostics.has_errors());
+        assert!(sem_analyzer.diagnostics.has_errors());
         assert_eq!(sem_analyzer.symbols, vec![
             Symbol {
                 id: 0,
