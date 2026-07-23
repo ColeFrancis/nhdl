@@ -42,6 +42,12 @@ pub enum Item {
 
 type Ident = String;
 
+// #[derive(PartialEq, Debug)]
+// pub struct Ident {
+//     val: String,
+//     span: Span,
+// }
+
 #[derive(PartialEq, Debug)]
 pub enum Type {
     Bool,
@@ -157,6 +163,22 @@ pub struct Param {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+/// Statements
+////////////////////////////////////////////////////////////////////////////////
+
+#[derive(PartialEq, Debug)]
+pub enum Statement {
+    Let(LetStatement),
+    Error,
+}
+
+#[derive(PartialEq, Debug)]
+pub struct LetStatement {
+    pub name: Ident,
+    pub expr: Expr,
+}
+
+////////////////////////////////////////////////////////////////////////////////
 /// Entities
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -193,18 +215,6 @@ pub enum RelBody {
 #[derive(PartialEq, Debug)]
 pub struct BlockExpr {
     pub statements: Vec<Statement>,
-    pub expr: Expr,
-}
-
-#[derive(PartialEq, Debug)]
-pub enum Statement {
-    Let(LetStatement),
-    Error,
-}
-
-#[derive(PartialEq, Debug)]
-pub struct LetStatement {
-    pub name: Ident,
     pub expr: Expr,
 }
 

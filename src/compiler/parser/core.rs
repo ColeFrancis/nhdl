@@ -251,9 +251,7 @@ mod tests {
         let tokens: Vec<Token> = build_token_vec(kinds);
 
         let mut diagnostics = Diagnostics::new();
-        let mut parser = Parser::new(tokens, &mut diagnostics);
-
-        let result = parser.parse();
+        let result = Parser::new(tokens, &mut diagnostics).parse();
 
         assert_eq!(result, Program { 
             items: vec![

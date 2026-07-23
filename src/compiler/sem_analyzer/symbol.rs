@@ -23,9 +23,11 @@
 //! Author: Cole Francis
 
 use crate::compiler::diagnostics::Span;
+use super::scope::ScopeId;
 
 pub type SymbolId = usize;
 
+#[derive(PartialEq, Debug)]
 #[allow(non_camel_case_types)]
 pub enum SymbolKind {
     Variable,
@@ -35,6 +37,7 @@ pub enum SymbolKind {
     Net,
 }
 
+#[derive(PartialEq, Debug)]
 pub struct Symbol {
     pub id: SymbolId,   // index in Vec<Symbol>
     pub name: String,

@@ -27,38 +27,8 @@ use super::symbol::SymbolId;
 
 pub type ScopeId = usize;
 
+#[derive(PartialEq, Debug)]
 pub struct Scope {
     pub parent: Option<ScopeId>,
     pub symbols: HashMap<String, SymbolId>,
 }
-
-// Vec<Scope>
-// whenever enterinc scope, create a new scope, define its parents, and push it onto the vector. Then when leaving scope, pop back tto parents
-
-// LOOKUP ALGORITHM
-// fn lookup(name: &str, mut scope: ScopeId) -> Option<SymbolId> {
-//     loop {
-//         let s = &self.scopes[scope];
-
-//         if let Some(id) = s.symbols.get(name) {
-//             return Some(*id);
-//         }
-
-//         match s.parent {
-//             Some(parent) => scope = parent,
-//             None => return None,
-//         }
-//     }
-// }
-
-// Declare a symbol:
-//  search current scope. if present, duplicate definition compiler error
-//  Create symbol struct
-//  Store in symbols
-//  insert into scope
-//      current_scope.symbols.insert("x", 42);
-// I dont want duplicate definition
-//     when declaring, search current s
-
-// when a symbol is used, look it up in scope
-//  if its not there, emit undeclared <thing> compiler error

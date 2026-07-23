@@ -25,8 +25,8 @@
 use super::SemAnalyzer;
 use crate::compiler::parser::ast;
 use crate::compiler::sem_analyzer::ann_ast;
-use crate::compiler::diagnostics::Diagnostics;
-use crate::compiler::sem_analyzer::symbol::Symbol;
+use crate::compiler::diagnostics::{Diagnostics};
+use crate::compiler::sem_analyzer::symbol::{Symbol};
 
 impl <'a> SemAnalyzer<'a> {
     pub fn new(diagnostics: &'a mut Diagnostics) -> Self {

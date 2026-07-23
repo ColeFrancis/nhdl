@@ -334,9 +334,7 @@ mod test {
     #[test]
     fn test_comments() {
         let mut diagnostics = Diagnostics::new();
-        let mut lexer = Lexer::new("// asdklf;jsk \n   ", &mut diagnostics);
-
-        let tokens: Vec<Token> = lexer.tokenize();
+        let tokens = Lexer::new("// asdklf;jsk \n   ", &mut diagnostics).tokenize();
 
         assert_eq!(kinds(&tokens), vec![Eof]);
 

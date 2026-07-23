@@ -154,8 +154,24 @@ pub enum Prob {
 
 #[derive(PartialEq, Debug)]
 pub struct Param {
-    pub name: SymbolId,
+    pub symbol: SymbolId,
     pub param_type: Type,
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// Statements
+////////////////////////////////////////////////////////////////////////////////
+
+#[derive(PartialEq, Debug)]
+pub enum Statement {
+    Let(LetStatement),
+    Error,
+}
+
+#[derive(PartialEq, Debug)]
+pub struct LetStatement {
+    pub symbol: SymbolId,
+    pub expr: Expr,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -164,7 +180,7 @@ pub struct Param {
 
 #[derive(PartialEq, Debug)]
 pub struct EntType {
-    pub name: SymbolId,
+    pub symbol: SymbolId,
     pub expr: EntExpr,
 }
 
@@ -180,7 +196,7 @@ pub enum EntExpr {
 
 #[derive(PartialEq, Debug)]
 pub struct RelType {
-    pub name: SymbolId,
+    pub symbol: SymbolId,
     pub params: Vec<Param>,
     pub return_type: Type,
     pub body: RelBody,
@@ -198,25 +214,13 @@ pub struct BlockExpr {
     pub expr: Expr,
 }
 
-#[derive(PartialEq, Debug)]
-pub enum Statement {
-    Let(LetStatement),
-    Error,
-}
-
-#[derive(PartialEq, Debug)]
-pub struct LetStatement {
-    pub name: SymbolId,
-    pub expr: Expr,
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 /// Networks
 ////////////////////////////////////////////////////////////////////////////////
 
 #[derive(PartialEq, Debug)]
 pub struct Net {
-    pub name: SymbolId,
+    pub symbol: SymbolId,
     pub items: Vec<NetItem>,
 }
 

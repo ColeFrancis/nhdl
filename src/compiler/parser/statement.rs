@@ -99,12 +99,9 @@ mod tests {
         
         // let 9n = 1;
         let mut diagnostics = Diagnostics::new();
-        let mut lexer = Lexer::new("9a = 1;", &mut diagnostics);
-        let tokens: Vec<Token> = lexer.tokenize();
+        let tokens = Lexer::new("9a = 1;", &mut diagnostics).tokenize();
 
-        let mut parser = Parser::new(tokens, &mut diagnostics);
-
-        let result = parser.parse_let_stmt();
+        let result = Parser::new(tokens, &mut diagnostics).parse_let_stmt();
 
         assert_eq!(result, None);
         assert_eq!(diagnostics.num_errors(), 2); // invalid num, unexpected token

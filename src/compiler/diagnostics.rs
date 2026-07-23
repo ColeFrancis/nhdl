@@ -62,7 +62,10 @@ impl Diagnostics {
 
 #[derive(Debug, PartialEq)]
 pub enum CompilerError {
+    ////////////////////
     // Lexer
+    ////////////////////
+
     UnknownToken {
         lexeme: String,
         span: Span,
@@ -73,12 +76,24 @@ pub enum CompilerError {
         span: Span,
     },
 
+    ////////////////////
     // Parser
+    ////////////////////
+
     UnexpectedToken {
         expected: Vec<Expected>,
         found: TokenKind,
         span: Span,
     },
+
+    ////////////////////
+    // Semantic Analysis
+    ////////////////////
+
+    DuplicateDefinition {
+        name: String,
+        span: Span,
+    }
 }
 
 #[derive(Debug, PartialEq)]
