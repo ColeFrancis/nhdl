@@ -47,7 +47,7 @@ impl <'a> SemAnalyzer<'a> {
         (self.ann_ast, self.symbols)
     }
 
-    pub fn lookup_symbol(&self, name: &str) -> Option<SymbolId> {
+    pub(super) fn lookup_symbol(&self, name: &str) -> Option<SymbolId> {
         let mut scope = self.current_scope;
 
         loop {
